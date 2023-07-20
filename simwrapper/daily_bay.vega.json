@@ -1,0 +1,29 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Bay Area",
+  "data": {
+    "values": [
+      {"category": "Auto", "value": 77.7},
+      {"category": "Transit", "value": 5.7},
+      {"category": "Pedestrian", "value": 9.8},
+      {"category": "Bike", "value": 2.2},
+      {"category": "TNC", "value": 4.5}
+    ]
+  },
+  "width": "container",
+  "height": 300,
+  "autosize": {"type": "fit", "resize": true},
+  "mark": {"type": "arc", "tooltip": true},
+  "encoding": {
+    "theta": {"field": "value", "type": "quantitative", "stack": "normalize"},
+    "color": {
+      "field": "category",
+      "type": "nominal",
+      "scale": {
+        "domain": ["Auto", "Transit", "Pedestrian", "Bike", "TNC"],
+        "range": ["#f5939d", "#c2ebfc", "#bec3fa", "#bbfcd8", "#feffcf"]
+      }
+    }
+  },
+  "config": {}
+}

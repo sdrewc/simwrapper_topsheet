@@ -1,0 +1,43 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "data": {
+    "url": "output_for_simwrapper/Landuse.csv"
+  },
+  "params": [
+    {
+      "name": "hover",
+      "select": {"type": "point", "on": "mouseover", "clear": "mouseout"}
+    }
+  ],
+  "title": {"text": "LandUse", "fontSize": 20},
+  "mark": {
+    "type": "bar",
+    "stroke": "black",
+    "cursor": "pointer",
+    "tooltip": true
+  },
+  "width": "container",
+  "height": 300,
+  "autosize": { "type": "fit", "resize": true },
+  "encoding": {
+    "x": {
+      "field": "category",
+      "type": "nominal",
+      "sort": ["Downtown", "San_Francisco", "Bay_Area"]
+    },
+    "y": {"field": "value", "type": "quantitative"},
+    "detail": {"field": "value"},
+    "order": {"field": "value", "type": "quantitative", "sort": "ascending"},
+    "color": {
+      "field": "Area",
+      "type": "nominal",
+      "scale": {"range": ["#87CEFA", "#D3D3D3", "#FFC0CB"], "scheme": "viridis"}
+    },
+    "axis": {
+      "x": {"title": "Data Categories", "labelAngle": -45},
+      "y": {"title": "Values"}
+    },
+    "config": {"bar": {"thickness": 30}}
+  }
+}
+

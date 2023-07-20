@@ -1,0 +1,29 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "San Francisco daily mode share",
+  "data": {
+    "values": [
+      {"category": "Auto", "value": 52.5},
+      {"category": "Transit", "value": 20.2},
+      {"category": "Pedestrian", "value": 13.2},
+      {"category": "Bike", "value": 2.4},
+      {"category": "TNC", "value": 11.8}
+    ]
+  },
+  "width": "container",
+  "height": 300,
+  "autosize": {"type": "fit", "resize": true},
+  "mark": {"type": "arc", "tooltip": true},
+  "encoding": {
+    "theta": {"field": "value", "type": "quantitative", "stack": "normalize"},
+    "color": {
+      "field": "category",
+      "type": "nominal",
+      "scale": {
+        "domain": ["Auto", "Transit", "Pedestrian", "Bike", "TNC"],
+        "range": ["#f5939d", "#c2ebfc", "#bec3fa", "#bbfcd8", "#feffcf"]
+      }
+    }
+  },
+  "config": {}
+}

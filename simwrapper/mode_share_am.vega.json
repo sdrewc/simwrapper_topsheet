@@ -1,0 +1,51 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Interactive mode share stacked bar chart",
+  "data": {
+    "url": "output_for_simwrapper/Mode_share_AM.csv",
+    "format": {"type": "csv"}
+  },
+  "mark": "bar",
+  "encoding": {
+    "x": {
+      "field": "area",
+      "type": "nominal",
+      "sort": ["Downtown", "San_Francisco", "Bay_Area"],
+      "axis": {"title": ""}
+    },
+    "y": {
+      "field": "percentage",
+      "type": "quantitative",
+      "axis": {"title": "Mode Share"}
+    },
+    "color": {
+      "field": "mode",
+      "type": "nominal",
+      "scale": {
+        "domain": ["Auto", "Transit", "Pedestrian", "Bike", "TNC"],
+        "range": ["#FF9AA2", "#FFB7B2", "#FFDAC1", "#E2F0CB", "#B5EAD7"]
+      },
+      "legend": {"title": "Mode"}
+    },
+    "tooltip": [
+      {"field": "area", "type": "nominal", "title": "Area"},
+      {"field": "mode", "type": "nominal", "title": "Mode"},
+      {"field": "percentage", "type": "quantitative", "title": "Percentage"}
+    ]
+  },
+  "config": {
+    "view": {"stroke": "transparent"},
+    "bar": {"stack": "normalize"}
+  },
+  "selection": {
+    "highlight": {"type": "single", "on": "mouseover", "empty": "none"},
+    "select": {"type": "multi"}
+  },
+  "mark": {
+    "type": "bar",
+    "strokeWidth": 1,
+    "cursor": "pointer"
+  }
+}
+
+

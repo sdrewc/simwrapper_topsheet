@@ -1,0 +1,24 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Muni Boardings",
+  "data": {
+    "url": "output_for_simwrapper/Transit_sel_muni_AM.csv"
+  },
+  "mark": {"type": "bar", "tooltip": true, "size": 60},
+  "encoding": {
+    "x": {
+      "field": "boardings",
+      "type": "quantitative",
+      "title": "Boardings",
+      "axis": {"grid": false}
+    },
+    "y": {
+      "field": "Muni Boardings",
+      "type": "nominal",
+      "title": null,
+      "axis": {"labelAngle": 0}
+    },
+    "color": {"value": "#ade7ff"}
+  },
+  "config": {}
+}

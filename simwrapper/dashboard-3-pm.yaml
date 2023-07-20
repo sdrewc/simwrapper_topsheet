@@ -1,0 +1,111 @@
+header:
+  tab: "PM table"
+  title: "PM Summary table"
+  description: "summary tables and plots"
+
+
+layout:
+  row:
+
+    - type: text
+      title: 'Land Use Table'
+      description: 'Table showing land use statistics for Downtown, San Francisco and Bay Area'
+      file: 'output_for_simwrapper/Landuse.md'
+      
+    - title: LandUse Plot
+      type: vega
+      config: landuse.vega.json
+
+
+      
+  mode_share:
+    - type: text
+      title: 'Mode share Table'
+      description: 'PM table'
+      file: 'output_for_simwrapper/Mode_share_PM.md'
+
+    - type: vega
+      title: "Mode share plot"
+      config: mode_share_pm.vega.json
+
+  VMT_VMT:
+    - type: text
+      title: 'VMT_VHT Table'
+      description: 'PM table'
+      file: 'output_for_simwrapper/VMT_VHT_PM.md'
+    - title: "VMT/VHT"
+      type: vega
+      config: vmt_vht_pm.vega.json
+
+  Transit0:
+    - type: text
+      title: 'Muni Boardings'
+      description: 'PM table'
+      file: 'output_for_simwrapper/Transit_muni_boardings_PM.md'
+
+    - title: "Muni boardings"
+      type: vega
+      config: transit_muni_boardings_pm.vega.json  
+
+  Transit1: 
+    - type: text
+      title: 'Rail Volumes'
+      description: 'PM table'
+      file: 'output_for_simwrapper/Transit_rail_volumes_PM.md'
+
+    - title: "Rail Volumes"
+      type: vega
+      config: transit_rail_volume_pm.vega.json  
+
+  Transit2:
+    - type: text
+      title: 'Rail Boardings'
+      description: 'PM table'
+      file: 'output_for_simwrapper/Transit_rail_boardings_PM.md'
+
+    - title: "Rail boardings"
+      type: vega
+      config:  transit_rail_boarding_pm.vega.json 
+
+  Transit3:
+    - type: text
+      title: 'Bus Volumes'
+      description: 'PM table'
+      file: 'output_for_simwrapper/Transit_bus_volumes_PM.md'
+
+    - title: "Bus Volumes"
+      type: vega
+      config: transit_bus_volumes_pm.vega.json   
+      
+      
+  Traffic:
+    - type: text
+      title: 'Traffic'
+      description: 'Tabular view of PM Traffic summary'
+      file: 'output_for_simwrapper/traffic_PM.md'
+      
+    - type: "bar"
+      title: "Traffic PM"
+      height: 8
+      width: 2
+      props:
+        dataset: "output_for_simwrapper/traffic_PM.csv"
+        stacked: false
+        xAxisName: 'Lines'
+        yAxisName: 'Count'
+        
+  Resident_Purpose:
+    - type: text
+      title: 'PM Resident Trips by Tour Purpose'
+      description: 'Tabular view of PM Resident Purpose summary'
+      file: 'output_for_simwrapper/purpose_PM.md'
+      
+    - type: 'bar'
+      title: 'Residential Trips by Tour Purpose'
+      description: 'Purpose and their trips in 2 locations'
+      height: 10
+      dataset: 'output_for_simwrapper/purpose_PM.csv'
+      stacked: true
+      x: 'Purpose'
+      xAxisName: 'Purpose'
+      yAxisName: 'Count'

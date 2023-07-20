@@ -1,0 +1,118 @@
+header:
+  tab: "AM table"
+  title: "AM Summary table"
+  description: "summary tables and plots"
+
+
+layout:
+  row:
+
+    - type: text
+      title: 'Land Use Table'
+      description: 'Table showing land use statistics for Downtown, San Francisco and Bay Area'
+      file: 'output_for_simwrapper/Landuse.md'
+
+    - title: LandUse Plot
+      type: vega
+      config: landuse.vega.json
+
+
+      
+  mode_share:
+    - type: text
+      title: 'Mode share Table'
+      description: 'AM table'
+      file: 'output_for_simwrapper/Mode_share_AM.md'
+      
+    - type: vega
+      title: "Mode share plot"
+      config: mode_share_am.vega.json
+
+
+
+  VMT_VMT:
+    - type: text
+      title: 'VMT_VHT Table'
+      description: 'AM table'
+      file: 'output_for_simwrapper/VMT_VHT_AM.md'
+
+    - title: "VMT/VHT"
+      type: vega
+      config: vmt_vht_am.vega.json
+
+
+
+
+
+
+  Transit0:
+    - type: text
+      title: 'Muni Boardings'
+      description: 'AM table'
+      file: 'output_for_simwrapper/Transit_muni_boardings_AM.md'
+
+    - title: "Muni boardings"
+      type: vega
+      config: transit_muni_boardings_am.vega.json  
+
+  Transit1: 
+    - type: text
+      title: 'Rail Volumes'
+      description: 'AM table'
+      file: 'output_for_simwrapper/Transit_rail_volumes_AM.md'
+
+    - title: "Rail Volumes"
+      type: vega
+      config: transit_rail_volume_am.vega.json  
+
+  Transit2:
+    - type: text
+      title: 'Rail Boardings'
+      description: 'AM table'
+      file: 'output_for_simwrapper/Transit_rail_boardings_AM.md'
+
+    - title: "Rail boardings"
+      type: vega
+      config:  transit_rail_boarding_am.vega.json 
+
+  Transit3:
+    - type: text
+      title: 'Bus Volumes'
+      description: 'AM table'
+      file: 'output_for_simwrapper/Transit_bus_volumes_AM.md'
+
+    - title: "Bus Volumes"
+      type: vega
+      config: transit_bus_volumes_am.vega.json   
+
+  Traffic:
+    - type: text
+      title: 'Traffic'
+      description: 'Tabular view of AM Traffic'
+      file: 'output_for_simwrapper/traffic_AM.md'
+      
+    - type: "bar"
+      title: "Traffic AM"
+      height: 8
+      width: 2
+      props:
+        dataset: "output_for_simwrapper/traffic_AM.csv"
+        stacked: false
+        xAxisName: 'Lines'
+        yAxisName: 'Count'       
+        
+  Resident_purpose:
+    - type: text
+      title: 'AM Resident Trips by Tour Purpose'
+      description: 'Tabular view of AM Resident Purpose summary'
+      file: 'output_for_simwrapper/purpose_AM.md'
+      
+    - type: 'bar'
+      title: 'Residential Trips by Tour Purpose'
+      description: 'Purpose and their trips in 2 locations'
+      height: 10
+      dataset: 'output_for_simwrapper/purpose_AM.csv'
+      stacked: true
+      x: 'Purpose'
+      xAxisName: 'Purpose'
+      yAxisName: 'Count'

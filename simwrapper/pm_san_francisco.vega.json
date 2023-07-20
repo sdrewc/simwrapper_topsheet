@@ -1,0 +1,30 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "San Francisco PM mode share",
+  "data": {
+    "values": [
+      {"category": "Auto", "value": 54.1},
+      {"category": "Transit", "value": 24.2},
+      {"category": "Pedestrian", "value": 12.7},
+      {"category": "Bike", "value": 2.6},
+      {"category": "TNC", "value": 6.4}
+    ]
+  },
+
+  "width": "container",
+  "height": 300,
+  "autosize": {"type": "fit", "resize": true},
+  "mark": {"type": "arc", "tooltip": true},
+  "encoding": {
+    "theta": {"field": "value", "type": "quantitative", "stack": "normalize"},
+    "color": {
+      "field": "category",
+      "type": "nominal",
+      "scale": {
+        "domain": ["Auto", "Transit", "Pedestrian", "Bike", "TNC"],
+        "range": ["#f5939d", "#c2ebfc", "#bec3fa", "#bbfcd8", "#feffcf"]
+      }
+    }
+  },
+  "config": {}
+}
