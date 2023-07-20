@@ -355,6 +355,8 @@ else:
             dbf.to_csv(csv_file)
 
         print("DBF files with prefix SFALLMSA converted to CSV files")
+def is_integer(value):
+    return isinstance(value, (int, float)) and value.is_integer()
 
 
 AM = pd.read_csv(AM_csv, low_memory=False)
@@ -374,12 +376,12 @@ res_dict = {"AM":transit_am, "EA":transit_ea,"EV":transit_ev,"MD":transit_md,"PM
 output = {'Daily':get_total_transit(res_dict), "AM":transit_am, "PM": transit_pm}
 for timeperiod in ['Daily', "AM", "PM"]:
     muni_boarding_types = [TRN_MUNI_GEARY, TRN_MUNI_VN, TRN_MUNI_MISSION, 
-                   TRN_MUNI_RAIL,TRN_MUNI_BUS, TRN_MUNI_TOTAL,TRN_XFER_LINKED ]
+                   TRN_MUNI_RAIL,TRN_MUNI_BUS, TRN_MUNI_TOTAL,TRN_XFER_LINKED]
     muni_rows = [['Muni Boardings', 'San Francisco']]
     for i in muni_boarding_types:
         muni_rows.append([i]+[int(output[timeperiod][i][0])])
     rate = muni_rows[-2][1]/muni_rows[-1][1]
-    muni_rows.append([TRN_XFER_RATE, round(rate,2)])
+    # muni_rows.append([TRN_XFER_RATE, round(rate,2)])
     rail_vol_rows = [['Rail Volumes', 'Inbound', 'Outbound']]
     rail_vol_types  = [TRN_BART_TUBE, TRN_BART_SM, TRN_CALTRAIN_SM ]
     for i in rail_vol_types:
@@ -403,12 +405,40 @@ for timeperiod in ['Daily', "AM", "PM"]:
 
     output_folder = OUTPUT_FOLDER 
     output_file_name = OUTPUT_FILENAME
-    for i, df in enumerate([df_muni_ridership, df_rail_boardings, df_rail_volume, df_bus_volume]):
+    formatted_df = df_muni_ridership.copy()
+    for col in formatted_df.columns:
+        if pd.api.types.is_numeric_dtype(formatted_df[col]):
+            formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
+    index_name = formatted_df.index.name.lower().replace(' ', '_')
+    filename = f'{output_file_name}_{index_name}_{timeperiod}.md'
+    markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
+    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+    alignment_row = markdown_table[1].split('|')[1:-1]
+    for i, cell in enumerate(alignment_row):
+        if i > 0:  # Skip the first column (header)
+            alignment_row[i] = "---:"
+    markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
+    markdown_table = '\n'.join(markdown_table)
+    new_row_md = '| ' + ' | '.join(str(val) for val in [TRN_XFER_RATE, round(rate,2)]) + ' |'
+    markdown_table += '\n' + new_row_md
+
+    with open(f'{output_folder}/{filename}', 'w') as f:
+        f.write(markdown_table)
+    for i, df in enumerate([df_rail_boardings, df_rail_volume, df_bus_volume]):
         index_name = df.index.name.lower().replace(' ', '_')
         filename = f'{output_file_name}_{index_name}_{timeperiod}.md'
-        markdown_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.1f').split('\n')
-        markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-        markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+        formatted_df = df.copy()
+        for col in formatted_df.columns:
+            if pd.api.types.is_numeric_dtype(formatted_df[col]):
+                formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
+        markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
+        markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i >= 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+        # markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+        alignment_row = markdown_table[1].split('|')[1:-1]
+        for i, cell in enumerate(alignment_row):
+            if i > 0:  # Skip the first column (header)
+                alignment_row[i] = "---:"
+        markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
         markdown_table = '\n'.join(markdown_table)
         with open(f'{output_folder}/{filename}', 'w') as f:
             f.write(markdown_table)
@@ -429,19 +459,19 @@ for timeperiod in ['Daily', "AM", "PM"]:
     # write selected rows to CSV file
     selected_muni_rows.to_csv(f'{output_folder}/{output_file_name}_sel_muni_{timeperiod}.csv', index=True, header=[ 'boardings'])
     df_rail_boardings_slice = df_rail_boardings.reset_index()
-    df_melted_rb = pd.melt(df_rail_boardings_slice, id_vars=['Rail Boardings'], var_name='direction', value_name='value')
-    df_melted_rb = df_melted_rb.rename(columns={'Rail Boardings': 'line'})
-    df_melted_rb = df_melted_rb[['line', 'direction', 'value']]
+    df_melted_rb = pd.melt(df_rail_boardings_slice, id_vars=['Rail Boardings'], var_name='Direction', value_name='value')
+    df_melted_rb = df_melted_rb.rename(columns={'Rail Boardings': 'Line'})
+    df_melted_rb = df_melted_rb[['Line', 'Direction', 'value']]
     df_melted_rb.to_csv(f'{output_folder}/{output_file_name}_sel_rb_{timeperiod}.csv', index=False)
     df_rail_volume_slice = df_rail_volume.reset_index()
-    df_melted_rv = pd.melt(df_rail_volume_slice, id_vars=['Rail Volumes'], var_name='direction', value_name='value')
-    df_melted_rv = df_melted_rv.rename(columns={'Rail Volumes': 'line'})
-    df_melted_rv = df_melted_rv[['line', 'direction', 'value']]
+    df_melted_rv = pd.melt(df_rail_volume_slice, id_vars=['Rail Volumes'], var_name='Direction', value_name='value')
+    df_melted_rv = df_melted_rv.rename(columns={'Rail Volumes': 'Line'})
+    df_melted_rv = df_melted_rv[['Line', 'Direction', 'value']]
     df_melted_rv.to_csv(f'{output_folder}/{output_file_name}_sel_rv_{timeperiod}.csv', index=False)
     df_bus_volume_slice = df_bus_volume.reset_index()
-    df_melted_bv = pd.melt(df_bus_volume_slice, id_vars=['Bus Volumes'], var_name='direction', value_name='value')
-    df_melted_bv = df_melted_bv.rename(columns={'Bus Volumes': 'line'})
-    df_melted_bv = df_melted_bv[['line', 'direction', 'value']]
+    df_melted_bv = pd.melt(df_bus_volume_slice, id_vars=['Bus Volumes'], var_name='Direction', value_name='value')
+    df_melted_bv = df_melted_bv.rename(columns={'Bus Volumes': 'Line'})
+    df_melted_bv = df_melted_bv[['Line', 'Direction', 'value']]
     df_melted_bv.to_csv(f'{output_folder}/{output_file_name}_sel_bv_{timeperiod}.csv', index=False)
 
 

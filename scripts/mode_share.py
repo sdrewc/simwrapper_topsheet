@@ -356,9 +356,18 @@ for time in res.keys():
     df_melted.to_csv(f"{output_folder}/{output_file}_{time}.csv", index=False)
     df = df.T
     df.index.name = 'Mode'
-    markdown_table = tabulate(df, headers='keys', tablefmt='pipe').split('\n')
-    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-    markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+    formatted_df = df.copy()
+    for col in formatted_df.columns:
+        if pd.api.types.is_numeric_dtype(formatted_df[col]):
+            formatted_df[col] = formatted_df[col].apply(lambda x: f"{x}%")
+    markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
+    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+    # markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+    alignment_row = markdown_table[1].split('|')[1:-1]
+    for i, cell in enumerate(alignment_row):
+        if i > 0:  # Skip the first column (header)
+            alignment_row[i] = "---:"
+    markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
     markdown_table = '\n'.join(markdown_table)
 
     with open(f'{output_folder}/{output_file}_{time}.md', 'w') as f:

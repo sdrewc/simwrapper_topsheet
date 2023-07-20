@@ -1,0 +1,63 @@
+header:
+  tab: "VMT - VHT"
+  title: 
+
+
+layout:
+  table0:
+    - type: text
+      width: 160
+      title: "Daily Summary Statistics of Vehicle Mobility"
+      description: The table presents a comprehensive comparison of vehicle mobility metrics across different geographical regions - San Francisco (SF),the rest of the Bay Area, and the Bay Area as a whole. Metrics include Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
+      file: 'content/vmt_Daily.md'
+  
+  table1:
+    - type: text
+      width: 40
+      title: 'Summary Statistics in San Francisco Across Different Times of Day'
+      description: This table delineates key vehicle mobility parameters across different times of day in San Francisco, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH). 
+      file: 'content/vmt_sf.md'
+    - type: text
+      width: 40
+      title: 'Vehicle Class Summary Statistics for San Francisco by Time of Day'
+      description: "The table outlines a comprehensive summary of different vehicle class statistics in San Francisco across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
+      file: 'content/vmt_vc_sf.md'
+
+  barplot1:
+    - type: vega
+      title: Vehicle Class Distribution in San Francisco by Time of Day
+      config: content/vc_sf.vega.json
+
+  table2:
+    - type: text
+      width: 40
+      title: 'Summary Statistics in the rest of Bay Area Across Different Times of Day'
+      description: This table delineates key vehicle mobility parameters across different times of day in the rest of Bay Area, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
+      file: 'content/vmt_nonsf.md'
+    - type: text
+      width: 40
+      title: 'Vehicle Class Summary Statistics for the rest of Bay Area by Time of Day'
+      description:  "The table outlines a comprehensive summary of different vehicle class statistics in the rest of Bay Area across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
+      file: 'content/vmt_vc_nonsf.md'
+
+  barplot2:
+    - type: vega
+      title: Vehicle Class Distribution in the rest of Bay Area by Time of Day
+      config: content/vc_nonsf.vega.json
+
+  table3:
+    - type: text
+      width: 40
+      title: 'Summary Statistics in Bay Area Across Different Times of Day'
+      description: This table delineates key vehicle mobility parameters across different times of day in Bay Area, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
+      file: 'content/vmt_ba.md'
+    - type: text
+      width: 40
+      title: 'Vehicle Class Summary Statistics for Bay Area by Time of Day'
+      description:  "The table outlines a comprehensive summary of different vehicle class statistics in Bay Area across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
+      file: 'content/vmt_vc_ba.md'
+
+  barplot3:
+    - type: vega
+      title: Vehicle Class Distribution in Bay Area by Time of Day
+      config: content/vc_ba.vega.json

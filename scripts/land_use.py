@@ -134,9 +134,18 @@ csv_df.to_csv(csv_path, index=False)
 df.index.name = 'Category'
 md_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}.md')
 # md_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.0f')
-markdown_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.0f').split('\n')
-markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+formatted_df = df.copy()
+for col in formatted_df.columns:
+    if pd.api.types.is_numeric_dtype(formatted_df[col]):
+        formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
+markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
+markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+# markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+alignment_row = markdown_table[1].split('|')[1:-1]
+for i, cell in enumerate(alignment_row):
+    if i > 0:  # Skip the first column (header)
+        alignment_row[i] = "---:"
+markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
 markdown_table = '\n'.join(markdown_table)
 with open(md_path, 'w') as f:
     f.write(markdown_table)

@@ -1,43 +1,36 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
   "data": {
-    "url": "output_for_simwrapper/Landuse.csv"
+    "url": "./data/landuse.csv"
   },
-  "params": [
-    {
-      "name": "hover",
-      "select": {"type": "point", "on": "mouseover", "clear": "mouseout"}
-    }
-  ],
-  "title": {"text": "LandUse", "fontSize": 20},
-  "mark": {
-    "type": "bar",
-    "stroke": "black",
-    "cursor": "pointer",
-    "tooltip": true
-  },
-  "width": "container",
-  "height": 300,
-  "autosize": { "type": "fit", "resize": true },
+  "mark": "bar",
   "encoding": {
     "x": {
-      "field": "category",
-      "type": "nominal",
-      "sort": ["Downtown", "San_Francisco", "Bay_Area"]
-    },
-    "y": {"field": "value", "type": "quantitative"},
-    "detail": {"field": "value"},
-    "order": {"field": "value", "type": "quantitative", "sort": "ascending"},
-    "color": {
       "field": "Area",
       "type": "nominal",
-      "scale": {"range": ["#87CEFA", "#D3D3D3", "#FFC0CB"], "scheme": "viridis"}
+      "axis": {"title": null, "labelAngle": -30},
+      "sort": ["Downtown", "SoMa", "N.Beach/ Chinatown", "Western Market", "Mission/ Potrero", "Noe/ Glen/ Bernal", "Marina/ N.Heights", "Richmond", "Bayshore", "Outer Mission", "Hill Districts", "Sunset", "South Bay", "East Bay", "North Bay"]
     },
-    "axis": {
-      "x": {"title": "Data Categories", "labelAngle": -45},
-      "y": {"title": "Values"}
+    "y": {
+      "field": "value",
+      "type": "quantitative",
+      "axis": {"title": null},
+      "scale": {"domain": [0, 50000], "clamp": true}
     },
-    "config": {"bar": {"thickness": 30}}
+    "xOffset": {"field": "category"},
+    "color": {
+      "field": "category",
+      "type": "nominal",
+      "legend": {"title": "Category"},
+      "scale": {"range": ["#87CEFA", "#D3D3D3", "#FFC0CB", "#98FB98"], "scheme": "viridis"}
+    },
+    "tooltip": [
+      {"field": "Area", "type": "nominal"},
+      {"field": "category", "type": "nominal"},
+      {"field": "value", "type": "quantitative"}
+    ]
+  },
+  "config": {
+    "bar": {"binSpacing": 10, "continuousBandSize": 30}
   }
 }
-

@@ -1,0 +1,120 @@
+header:
+  tab: "Transit"
+  title: 'Transit'
+
+layout:
+  Transit0:
+    - type: text
+      title: 'Muni Boardings Table'
+      description: 'Table showing daily muni boardings in San Francisco'
+      file: 'content/Transit_muni_boardings_Daily.md'
+
+    - type: text
+      title: 'Rail Volumes Table'
+      description: 'Table showing daily inbound and outbound rail volumes'
+      file: 'content/Transit_rail_volumes_Daily.md'
+
+  Transit1:
+    - type: text
+      title: 'Rail Boardings Table'
+      description: 'Table showing daily rail boardings for Downtown, San Francisco and the Bay Area'
+      file: 'content/Transit_rail_boardings_Daily.md'
+
+    - type: text
+      title: 'Bus Volumes Table'
+      description: 'Table showing daily inbound and outbound bus volumes'
+      file: 'content/Transit_bus_volumes_Daily.md'
+  
+  Map Muni Bus:
+    - type: map
+      height: 10
+      title: Muni Bus
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: shapefiles/freeflow.shp
+      datasets:
+          muniBus:
+              file: data/test_muniBus.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniBus
+              columnName: AB_VOL
+              colorRamp:
+                  ramp: Blues
+                  steps: 20
+          lineWidth:
+              dataset: muniBus
+              columnName: AB_VOL
+              scaleFactor: 1000
+      filters:
+          shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
+      tooltip:
+          - muniBus.AB_VOL
+          - shapes.AB
+          - shapes.STREETNAME
+  Map Muni Rail:
+    - type: map
+      height: 10
+      title: Muni Rail
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: shapefiles/freeflow.shp
+      datasets:
+          muniRail:
+              file: data/test_muniRail.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniRail
+              columnName: AB_VOL
+              colorRamp:
+                  ramp: Oranges
+                  steps: 20
+          lineWidth:
+              dataset: muniRail
+              columnName: AB_VOL
+              scaleFactor: 1000
+      filters:
+          shapes.FT!: "6"
+          muniRail.AB_VOL!: "0"
+      tooltip:
+          - muniRail.AB_VOL
+          - shapes.AB
+          - shapes.STREETNAME
+  Map Regional Transit:
+    - type: map
+      height: 10
+      title: Regional Transit
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: shapefiles/freeflow.shp
+      datasets:
+          regionalTransit:
+              file: data/test_regionalTransit.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: regionalTransit
+              columnName: AB_VOL
+              colorRamp:
+                  ramp: Greens
+                  steps: 20
+          lineWidth:
+              dataset: regionalTransit
+              columnName: AB_VOL
+              scaleFactor: 1000
+      filters:
+          shapes.FT!: "6"
+          regionalTransit.AB_VOL!: "0"
+      tooltip:
+          - regionalTransit.AB_VOL
+          - shapes.AB
+          - shapes.STREETNAME

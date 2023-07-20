@@ -1,0 +1,96 @@
+header:
+  tab: "Land Use"
+  title: "Land Use"
+  description: ""
+
+
+layout:
+  table:
+    - type: text
+      width: 40
+      title: 'Land Use Table'
+      description: >
+        The table provides a snapshot of key demographic and economic indicators for the Bay Area, San Francisco, and 15 districts.  
+        Density values are calculated by dividing the corresponding indicators by the square miles of each area.  
+        HH is the abbreviation for Households; POP is the abbreviation for Population; EMPRES is the abbreviation for Employed Residents.
+      file: 'content/landuse.md'
+
+  bar chart:
+    - title: Land Use Plot
+      type: vega
+      description: 'The grouped bar chart displays four metrics - Households Density, Population Density, Employed Residents Density, and Employment Density - for 15 districts. Density values are calculated by dividing the corresponding indicators by the square miles of each area.'
+      config: content/landuse.vega.json
+  Land Use Map - Taz:
+    - type: map
+      title: Land Use Map - Tza
+      description: The map displays all land use metrics for each TAZ. 
+      zoom: 11.6
+      center:
+          - -122.42
+          - 37.77
+      height: 10
+      shapes: shapefiles/TAZ2454_clean.shp
+      datasets:
+        taz: 
+          file: data/landuse_density.csv
+          join: TAZ:SFTAZ
+      display:
+          fill:
+            dataset: taz
+            columnName: HH_DENSITY
+            colorRamp:
+              ramp: Plasma
+              steps: 10
+
+      tooltip:
+        - taz.DISTRICT_NAME
+        - taz.SFTAZ
+        - taz.HHLDS
+        - taz.POP
+        - taz.EMPRES
+        - taz.CIE
+        - taz.MED
+        - taz.MIPS
+        - taz.PDR
+        - taz.RETAIL
+        - taz.VISITOR
+        - taz.TOTALEMP
+        - taz.HH_DENSITY
+        - taz.POP_DENSITY
+        - taz.EMPRES_DENSITY
+        - taz.TOTALEMP_DENSITY
+
+  Land Use map-districts:
+    - type: map
+      title: Land Use Map - Districts
+      description: The map displays all land use metrics for each district.
+      zoom: 11.6
+      center:
+          - -122.42
+          - 37.77
+      height: 10
+      shapes: shapefiles/Dist_15_Dissolve.shp
+      datasets:
+        district: 
+          file: data/landuse_district.csv
+          join: Dist15_DIS:Area
+      display:
+          fill:
+              dataset: district
+              columnName: Employment Density
+              colorRamp:
+                  ramp: RdBu
+                  steps: 15
+
+      tooltip:
+        - district.Area
+        - district.DISTRICT
+        - district.Employment Density
+        - district.Population Density
+        - district.Employed Residents Density
+        - district.Households Density
+        - district.Employment Value
+        - district.Population Value
+        - district.Employed Residents Value
+        - district.Households Value
+

@@ -118,12 +118,21 @@ for timeperiod in res.keys():
                    index = ['San Francisco','Bay Area'])
     df.T.to_csv(f"{output_folder}/{output_file}_{timeperiod}.csv")
     vmt_vht = df['VMT/VHT']
-    vmt_vht.to_csv(f"{output_folder}/{output_file}_{timeperiod}_ratio.csv", header=['value'], index=True, index_label='area')
+    vmt_vht.to_csv(f"{output_folder}/{output_file}_{timeperiod}_ratio.csv", header=['value'], index=True, index_label='Area')
     df = df.T
     df.index.name ='Type'
-    markdown_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.0f').split('\n')
-    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-    markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+    formatted_df = df.copy()
+    for col in formatted_df.columns:
+        if pd.api.types.is_numeric_dtype(formatted_df[col]):
+            formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
+    markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
+    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+    # markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
+    alignment_row = markdown_table[1].split('|')[1:-1]
+    for i, cell in enumerate(alignment_row):
+        if i > 0:  # Skip the first column (header)
+            alignment_row[i] = "---:"
+    markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
     markdown_table = '\n'.join(markdown_table)
     with open(f'{output_folder}/{output_file}_{timeperiod}.md', 'w') as f:
         f.write(markdown_table)
