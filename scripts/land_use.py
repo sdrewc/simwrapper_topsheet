@@ -1,32 +1,16 @@
 
 import pandas as pd
 from simpledbf import Dbf5
-import re,os
+import re
 from tabulate import tabulate
-import configparser
 
-
-
-
-# Read input parameters from control file
-CTL_FILE                = os.environ.get('control_file')
-print(CTL_FILE)
-config = configparser.ConfigParser()
-config.read(CTL_FILE)
-WORKING_FOLDER          =  os.environ.get('input_dir')
-OUTPUT_FOLDER           =  os.environ.get('output_dir')
-LU_FILE_NAME            =  config['land_use']['Lu_file']
-LU_CTLFILE_NAME         =  config['land_use']['LU_ctl_file']
-OUTPUT_FILE_NAME        =  config['land_use']['LandUse_output_file_name']
-
-#necessary input files for this script: "tazdata.dbf", 'modesumSimple3_RPM9.ctl', 'DIST15.eqv'
-LU_FILE                 =  os.path.join(WORKING_FOLDER, LU_FILE_NAME)
-LU_CTLFILE              =  os.path.join(WORKING_FOLDER, LU_CTLFILE_NAME)
+LU_FILE                 = "tazdata.dbf"
 LU_HHLDS                = 'Households' 
 LU_POP                  = 'Population' 
 LU_EMPRES               = 'Employed Residents' 
 LU_TOTALEMP             = 'Total Employment' 
 LU_ROWS                 = [ LU_HHLDS, LU_POP, LU_EMPRES, LU_TOTALEMP ]
+ctlfile                 = 'modesumSimple3_RPM9.ctl'
 # eqvfile               = 'DIST15.eqv'
 
 #1. It's imported from summit file.
@@ -104,48 +88,19 @@ def convertToCumulative(thedict):
 
 
 # read ctlfile and extract eqvfile path
-with open(LU_CTLFILE) as f:
+with open(ctlfile) as f:
     ctltxt = f.read()
     m = re.search("fequiv='(.+)'", ctltxt)
     if m is None:
         exit(1)
     eqvfile = m.group(1)
-eqvfile_path = os.path.join(WORKING_FOLDER , eqvfile)
+
 # process eqvfile and save results to csv
-distnames, distToTaz, tazToDist, numdists = readEqvFile(eqvfile_path)
-res = convertToCumulative(getLanduseAttributesForDists(numdists,tazToDist))
-index = []
-dt = []
-sf = []
-bay = []
-for var in res:
-    index.append(var)
-    dt.append(int(res[var][0]))
-    sf.append(int(res[var][1]))
-    bay.append(int(res[var][2]))
-df = pd.DataFrame(data = {'Downtown': dt, 'San Francisco': sf, 'Bay Area': bay},index = index)
-csv_df = df
-csv_df.index.name = 'Area'
-csv_df = csv_df.reset_index().melt(id_vars=['Area'], var_name='category', value_name='value')
-
-
-csv_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}.csv')
-csv_df.to_csv(csv_path, index=False)
-df.index.name = 'Category'
-md_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}.md')
-# md_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.0f')
-formatted_df = df.copy()
-for col in formatted_df.columns:
-    if pd.api.types.is_numeric_dtype(formatted_df[col]):
-        formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
-markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
-markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
-# markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
-alignment_row = markdown_table[1].split('|')[1:-1]
-for i, cell in enumerate(alignment_row):
-    if i > 0:  # Skip the first column (header)
-        alignment_row[i] = "---:"
-markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
-markdown_table = '\n'.join(markdown_table)
-with open(md_path, 'w') as f:
-    f.write(markdown_table)
+distnames, distToTaz, tazToDist, numdists = readEqvFile(eqvfile)
+res = convertToCumulative(getLanduseAttributesForDists(numdists, tazToDist))
+df = pd.DataFrame.from_dict({var: list(map(int, res[var])) for var in res},
+                            orient='index', columns=['Downtown', 'San Francisco', 'Bay Area'])
+df.to_csv('LandUse.csv', index=True)
+md_table = tabulate(df, headers='keys', tablefmt='pipe', floatfmt='.0f')
+with open('land_use_table.md', 'w') as f:
+    f.write(md_table)

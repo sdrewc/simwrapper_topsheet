@@ -1,0 +1,66 @@
+header:
+  tab: "Traffic"
+  title: 'Traffic Volume'
+
+layout:
+  Traffic:
+    - type: text
+      title: 'Total Traffic Volume'
+      description: 'Tabular view of Time of the day Traffic Volume ||  I = Inbound & O = Outbound'
+      file: 'traffic_dow.md'
+  
+  Traffic2:
+    - type: text
+      title: 'Vehicle Classes for All SF County Lines'
+      description: 'Daily Traffic vs Vehicle Classes'
+      file: 'traffic_All SF County Lines.md'
+
+    - type: text
+      title: 'Vehicle Classes for SM County Line'
+      description: 'Daily Traffic vs Vehicle Classes'
+      file: 'traffic_SM County Line.md'
+
+  Traffic3:
+    - type: text
+      title: 'Vehicle Classes for Bay Bridge'
+      description: 'Daily Traffic vs Vehicle Classes'
+      file: 'traffic_Bay Bridge.md'
+
+    - type: text
+      title: 'Vehicle Classes for Golden Gate Bridge'
+      description: 'Daily Traffic vs Vehicle Classes'
+      file: 'traffic_GG Bridge.md'
+  
+  Map Muni Bus:
+    - type: map
+      height: 12
+      title: Traffic Total Volume Map
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: freeflow.shp
+      datasets:
+          traffic:
+              file: traffic_map_Daily.csv
+              join: AB
+      display:
+          # lineColor:
+          #     dataset: traffic
+          #     columnName: TOTVOL
+          #     colorRamp:
+          #         ramp: Blues
+          #         steps: 8
+          lineWidth:
+              dataset: traffic
+              columnName: TOTVOL
+              scaleFactor: 3000
+      filters:
+          shapes.FT!: 6
+          # traffic.DAILY_TOT<: 100
+      tooltip:
+          - traffic.TOTVOL
+          - traffic.AUTOVOL
+          - traffic.TNC
+          - shapes.AB
+          - shapes.STREETNAME

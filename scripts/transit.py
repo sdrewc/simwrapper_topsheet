@@ -4,21 +4,53 @@ import pandas as pd
 from simpledbf import Dbf5
 from tabulate import tabulate
 import csv
-import os
-import simpledbf
 import configparser
+from platform import node
+import pandas as pd
+from shapely.geometry import Point, LineString
+import geopandas as gpd
+import fiona
+import sys, os,shutil
+import numpy as np
 
 
 
 
 # Read input parameters from control file
-CTL_FILE                = os.environ.get('control_file')
+CTL_FILE                = 'topsheet.CTL' #os.environ.get('control_file')
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER          =  os.environ.get('input_dir')
-OUTPUT_FOLDER           =  os.environ.get('output_dir')
+
+INPUT_FOLDER          =  r'X:\Projects\SB532\s2_sb532' # os.environ.get('input_dir')
+WORKING_FOLDER           =  '.' # os.environ.get('output_dir')
 
 
+# Define the list of files to be copied
+files_to_copy = [
+    config['transit']['SFALLMSAAM_CSV'],
+    config['transit']['SFALLMSAPM_CSV'],
+    config['transit']['SFALLMSAEA_CSV'],
+    config['transit']['SFALLMSAMD_CSV'],
+    config['transit']['SFALLMSAEV_CSV'],
+    config['transit']['SFALLMSAAM_DBF'],
+    config['transit']['SFALLMSAPM_DBF'],
+    config['transit']['SFALLMSAMD_DBF'],
+    config['transit']['SFALLMSAEV_DBF'],
+    config['transit']['SFALLMSAEA_DBF'],
+    config['transit']['FREEFLOW_nodes_DBF'],
+    config['transit']['LINKEDMUNI_AM_DBF'],
+    config['transit']['LINKEDMUNI_PM_DBF'],
+    config['transit']['LINKEDMUNI_MD_DBF'],
+    config['transit']['LINKEDMUNI_EV_DBF'],
+    config['transit']['LINKEDMUNI_EA_DBF']
+]
+
+
+# Copy the files
+for file_name in files_to_copy:
+    source = os.path.join(INPUT_FOLDER, file_name)
+    destination = os.path.join(WORKING_FOLDER, file_name)
+    shutil.copy2(source, destination)  # copy2 preserves metadata
 AM_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAAM_CSV'])
 PM_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAPM_CSV'])
 EA_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAEA_CSV'])
@@ -29,7 +61,8 @@ PM_dbf                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALL
 MD_dbf                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAMD_DBF'])
 EV_dbf                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAEV_DBF'])
 EA_dbf                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAEA_DBF'])
-OUTPUT_FILENAME         =  config['transit']['Transit_File_Name']
+FREEFRLOWNODES_dbf      =  os.path.join(WORKING_FOLDER, config['transit']['FREEFLOW_nodes_DBF'])
+
 linked_muni_files = {
     'AM': os.path.join(WORKING_FOLDER, config['transit']['LINKEDMUNI_AM_DBF']),
     'PM': os.path.join(WORKING_FOLDER, config['transit']['LINKEDMUNI_PM_DBF']),
@@ -37,7 +70,7 @@ linked_muni_files = {
     'EV': os.path.join(WORKING_FOLDER, config['transit']['LINKEDMUNI_EV_DBF']),
     'EA': os.path.join(WORKING_FOLDER, config['transit']['LINKEDMUNI_EA_DBF'])
 }
-
+OUTPUT_FILENAME         =  config['transit']['Transit_File_Name']
 TIMEPERIODS =  { 1:"EA", 2:"AM", 3:"MD", 4:"PM", 5:"EV" }
 TRN_QUICKBOARDS_CTL     = 'quickboards-topsheet.ctl'  # use local - it might have nodes.xls configured
 TRN_QUICKBOARDS_OUT     = 'topsheet-quickboards.xls'
@@ -125,8 +158,7 @@ class SanFranciscoNodeChecker:
     def __init__(self):
         if not SanFranciscoNodeChecker.NodesToCoords:
             SanFranciscoNodeChecker.NodesToCoords = {}
-            freenodes = os.path.join(WORKING_FOLDER, config['transit']['FREEFLOW_nodes_DBF'])
-            dbf = Dbf5(freenodes)
+            dbf = Dbf5(FREEFRLOWNODES_dbf)
             df = dbf.to_dataframe()
             for index, row in df.iterrows():
                 N = row['N']
@@ -403,7 +435,7 @@ for timeperiod in ['Daily', "AM", "PM"]:
     df_bus_volume = pd.DataFrame(bus_vol_rows[1:], columns=bus_vol_rows[0]).set_index(bus_vol_rows[0][0])
 
 
-    output_folder = OUTPUT_FOLDER 
+    output_folder = WORKING_FOLDER
     output_file_name = OUTPUT_FILENAME
     formatted_df = df_muni_ridership.copy()
     for col in formatted_df.columns:
@@ -444,35 +476,171 @@ for timeperiod in ['Daily', "AM", "PM"]:
             f.write(markdown_table)
 
 
-    # Write the DataFrames to a combined CSV file with a blank line between each DataFrame
-        with open(f'{output_folder}/{output_file_name}_{timeperiod}.csv', 'w') as f:
-            df_muni_ridership.to_csv(f, index=True, header=True)
-            f.write('\n')
-            df_rail_boardings.to_csv(f, index=True, header=True)
-            f.write('\n')
-            df_rail_volume.to_csv(f, index=True, header=True)
-            f.write('\n')
-            df_bus_volume.to_csv(f, index=True, header=True)
-    # Write each DataFrame to a separate markdown file
-
-    selected_muni_rows = df_muni_ridership.loc[df_muni_ridership.index.isin(['Geary Corridor(38 & 38L)', 'Van Ness (47 & 49)', 'Mission (49 & 14)'])]
-    # write selected rows to CSV file
-    selected_muni_rows.to_csv(f'{output_folder}/{output_file_name}_sel_muni_{timeperiod}.csv', index=True, header=[ 'boardings'])
-    df_rail_boardings_slice = df_rail_boardings.reset_index()
-    df_melted_rb = pd.melt(df_rail_boardings_slice, id_vars=['Rail Boardings'], var_name='Direction', value_name='value')
-    df_melted_rb = df_melted_rb.rename(columns={'Rail Boardings': 'Line'})
-    df_melted_rb = df_melted_rb[['Line', 'Direction', 'value']]
-    df_melted_rb.to_csv(f'{output_folder}/{output_file_name}_sel_rb_{timeperiod}.csv', index=False)
-    df_rail_volume_slice = df_rail_volume.reset_index()
-    df_melted_rv = pd.melt(df_rail_volume_slice, id_vars=['Rail Volumes'], var_name='Direction', value_name='value')
-    df_melted_rv = df_melted_rv.rename(columns={'Rail Volumes': 'Line'})
-    df_melted_rv = df_melted_rv[['Line', 'Direction', 'value']]
-    df_melted_rv.to_csv(f'{output_folder}/{output_file_name}_sel_rv_{timeperiod}.csv', index=False)
-    df_bus_volume_slice = df_bus_volume.reset_index()
-    df_melted_bv = pd.melt(df_bus_volume_slice, id_vars=['Bus Volumes'], var_name='Direction', value_name='value')
-    df_melted_bv = df_melted_bv.rename(columns={'Bus Volumes': 'Line'})
-    df_melted_bv = df_melted_bv[['Line', 'Direction', 'value']]
-    df_melted_bv.to_csv(f'{output_folder}/{output_file_name}_sel_bv_{timeperiod}.csv', index=False)
 
 
 
+
+
+class SimwrapperMapConstructor():
+    def __init__(self, link_data_path, node_data_path, bus_output, rail_output, reg_output):
+        self.link_data_path = link_data_path
+        self.node_data_path = node_data_path
+        self.bus_output = bus_output
+        self.rail_output = rail_output
+        self.reg_output = reg_output
+        self.caltrain_nodes = [14688, 14687, 14686, 14685, 14684, 14683, 14682, 14681, 14680,
+         14679, 14678, 14677, 14676, 14675, 14673, 14672, 14671, 14670,
+         14669, 14668, 14667, 14665, 14664, 14663, 14662, 14661, 14660,
+         14659, 14658, 14656, 14655]
+    
+    def build_maps(self,):
+        node_xy = pd.read_csv(self.node_data_path, header=None)
+        node_xy['xy'] = pd.Series([Point(x, y) for x, y in zip(node_xy[1], node_xy[2])])
+        node_xy.rename(columns={0: 'A', 'xy': 'A_xy'}, inplace=True)
+        df = self.fix_caltrain_shapes()
+        df = df.merge(node_xy[['A', 'A_xy']])
+        node_xy.rename(columns={'A': 'B', 'A_xy': 'B_xy'}, inplace=True)
+        df = df.merge(node_xy[['B', 'B_xy']])
+        df['geometry'] = pd.Series([LineString([x, y]) for x, y in zip(df['A_xy'], df['B_xy'])])
+        df.drop(['A_xy', 'B_xy'], axis=1, inplace=True)
+        geo_df = gpd.GeoDataFrame(df[['A','B','MODE', 'geometry']])
+        geo_df['AB'] = geo_df['A'].astype(str) + ' ' + geo_df['B'].astype(str)
+        geo_df = geo_df.drop_duplicates(subset=['AB','MODE'])
+        geo_df.crs = "EPSG:2227"
+        desired_modes = [11,12,13]
+        bus = geo_df[geo_df['MODE'].isin(desired_modes)]
+        bus = bus[['AB','geometry']]
+        bus.to_file(self.bus_output)
+        desired_modes = [15]
+        rail = geo_df[geo_df['MODE'].isin(desired_modes)]
+        rail = rail[['AB','geometry']]
+        rail.to_file(self.rail_output)
+        desired_modes = [22,23,24,26,31,32]
+        reg = geo_df[geo_df['MODE'].isin(desired_modes)]
+        reg = reg[['AB','geometry']]
+        reg.to_file(self.reg_output)
+    def fix_caltrain_shapes(self):
+        df = pd.read_csv(self.link_data_path,low_memory=False)
+        ct = df.loc[df['MODE'].eq(26) & df['A'].isin(self.caltrain_nodes) & df['B'].isin(self.caltrain_nodes)]
+        new_rows_all = []
+        for idx, row in ct.iterrows():
+            new_rows = self.split_link(row, self.caltrain_nodes)
+            new_rows.index = pd.RangeIndex(start=idx*10, stop=idx*10+len(new_rows), step=1) / 10
+            new_rows_all.append(new_rows)
+        df_res = df.loc[~df.index.isin(ct.index)]
+        df = pd.concat([df_res]+new_rows_all).sort_index()
+        return df
+    
+    def split_link(self, row, nodes):
+        data = []
+        iA, iB = nodes.index(row['A']), nodes.index(row['B'])
+        
+        if abs(iA-iB) == 1:
+            return pd.DataFrame(data=[[row['A'], row['B'], row['MODE'], row['NAME'], row['AB_VOL']
+                        ]], columns=['A','B','MODE','NAME','AB_VOL'])
+        
+        if iA > iB:
+            iA = len(nodes) - iA - 1
+            iB = len(nodes) - iB - 1
+            nodes = nodes[::-1]
+        
+        for n1, n2 in zip(nodes[iA:iB], nodes[iA+1:iB+1]):
+            data.append([n1, n2, row['MODE'], row['NAME'], row['AB_VOL']
+                        ])
+        df = pd.DataFrame(data=data, columns=['A','B','MODE','NAME','AB_VOL'])
+        return df
+    
+class MapDataConstructor():
+    def __init__(self,am_datapath, pm_datapath, am_output, pm_output):
+        self.am_file = am_datapath
+        self.pm_file = pm_datapath
+        self.am_df = pd.read_csv(self.am_file, low_memory=False)
+        self.pm_df = pd.read_csv(self.pm_file, low_memory=False)
+        self.am_output = am_output
+        self.pm_output = pm_output
+        self.caltrain_nodes = [14688, 14687, 14686, 14685, 14684, 14683, 14682, 14681, 14680,
+             14679, 14678, 14677, 14676, 14675, 14673, 14672, 14671, 14670,
+             14669, 14668, 14667, 14665, 14664, 14663, 14662, 14661, 14660,
+             14659, 14658, 14656, 14655]
+        self.peakHour_factor = {'AM': 0.348, 'MD': 0.154, 'PM':0.337, 'EV': 0.173, 'EA': 0.463}
+        self.tp_duration = {'AM':3, 'MD': 6.5,'PM':3, 'EV':8.5, 'EA': 3}
+        self.desired_modes = [11,12,13,15,22,23,24,26,31,32]
+
+    def create_data(self):
+        self.am_df = self.fix_caltrain_data(self.am_df)
+        self.pm_df = self.fix_caltrain_data(self.pm_df)
+        self.am_df = self.get_crowd(self.am_df, "AM")
+        self.pm_df = self.get_crowd(self.pm_df, "PM")
+        self.am_df = self.am_df[self.am_df['MODE'].isin(self.desired_modes)].copy()
+        self.pm_df = self.pm_df[self.pm_df['MODE'].isin(self.desired_modes)].copy()
+        def concatenate_columns(row):
+            return str(row['A']) + ' ' + str(row['B'])
+        self.am_df.loc[:, 'AB'] = self.am_df.apply(concatenate_columns, axis = 1)
+        self.pm_df.loc[:, 'AB'] = self.pm_df.apply(concatenate_columns, axis = 1)
+        self.am_df = self.am_df.groupby('AB', as_index=False).agg({'AB_VOL': 'sum','crowd':'max'})
+        self.pm_df = self.pm_df.groupby('AB', as_index=False).agg({'AB_VOL': 'sum','crowd':'max'})
+        self.am_df.to_csv(self.am_output,index=False)
+        self.pm_df.to_csv(self.pm_output,index=False)
+
+
+    def get_crowd(self,df, tp):
+        agg_df = df.groupby('AB').agg(AB_VOL_sum=('AB_VOL', 'sum'),
+                                PERIODCAP_sum=('PERIODCAP', 'sum')).reset_index()
+        agg_df['crowd'] = (agg_df['AB_VOL_sum'] *  self.peakHour_factor[tp]) / (agg_df['PERIODCAP_sum'] / self.tp_duration[tp])
+
+        df = df.merge(agg_df[['AB', 'crowd']], on='AB', how='left')
+        
+        return df
+    
+    def fix_caltrain_data(self,df):
+        ct = df.loc[df['MODE'].eq(26) & df['A'].isin(self.caltrain_nodes) & df['B'].isin(self.caltrain_nodes)]
+
+        new_rows_all = []
+
+        for idx, row in ct.iterrows():
+            new_rows = self.split_link(row, self.caltrain_nodes)
+            # order this index after the removed row
+            new_rows.index = pd.RangeIndex(start=idx*10, stop=idx*10+len(new_rows), step=1) / 10
+            new_rows_all.append(new_rows)
+
+        df_res = df.loc[~df.index.isin(ct.index)]
+
+        df = pd.concat([df_res]+new_rows_all).sort_index()
+        for col in ['AB_VOL']:
+            df[col] = df[col].map(lambda x: round(x,3))
+        df = df.reset_index().sort_values(by=['A','B'])
+        return df
+
+
+    def split_link(self, row, nodes):
+        data = []
+        iA, iB = nodes.index(row['A']), nodes.index(row['B'])
+
+        if abs(iA-iB) == 1:
+            return pd.DataFrame(data=pd.DataFrame(data=[[row['A'], row['B'], row['MODE'], row['AB_VOL']]], columns=['A','B','MODE','AB_VOL']))
+
+        if iA > iB:
+            iA = len(nodes) - iA - 1
+            iB = len(nodes) - iB - 1
+            nodes = nodes[::-1]
+
+        for n1, n2 in zip(nodes[iA:iB], nodes[iA+1:iB+1]):
+            data.append([n1, n2, row['MODE'], row['AB_VOL']])
+        df = pd.DataFrame(data=data, columns=['A','B','MODE','AB_VOL'])
+        return df
+
+link_data_path = AM_csv
+node_data_path = 'cubenet_validate_nodes.csv'
+bus_output = 'bus.shp'
+rail_output = 'rail.shp'
+reg_output = 'reg.shp'
+
+mapConstructor = SimwrapperMapConstructor(link_data_path, node_data_path, bus_output, rail_output, reg_output)
+mapConstructor.build_maps()
+
+am_datapath = AM_csv
+pm_datapath = PM_csv
+am_output = "reg_am.csv"
+pm_output = "reg_pm.csv"
+dataConstructor = MapDataConstructor(am_datapath, pm_datapath, am_output, pm_output)
+dataConstructor.create_data()
