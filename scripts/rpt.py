@@ -7,146 +7,123 @@ import configparser
 from simpledbf import Dbf5 as dbf
 import datetime,os,re,sys,subprocess
 from tables import open_file
+from utilTools import readEqvFile, readCtlFile
+import tables
 
-def runtpp(scriptname, outputfile, env=None):
-    """ Runs the given tpp script if the given outputfile doesn't exist
-    """
-    try:
-        if (runAll):
-            raise Exception('runAll', 'runAll')
-        else:
-            os.stat(outputfile)
-    except:
-        # it doesn't exist, run it
-        hostname = gethostname()
-        fullenv = None
-        if env:
-            fullenv = os.environ
-            fullenv.update(env)
-        # dispatch it, no cube license
-        if (hostname == 'Mason' or hostname == 'D90V07K1-okforgetit'):
-            f = open('topsheet.tmp', 'w')
-            f.write("runtpp " + scriptname + "\n")
-            f.close()
-            scriptname = scriptname.replace('/', '\\')
-            dproc    = subprocess.Popen( "Y:/champ/util/bin/dispatch.bat topsheet.tmp ocean", env=fullenv) 
-            dret     = dproc.wait()
-        else:
-            dproc    = subprocess.Popen( "runtpp " + scriptname, env=fullenv)    
-            dret     = dproc.wait()
-        print("dret = ",dret)
-    return
 
-def readEqvFile(eqvfile):
-	""" Reads the given eqvfile and returns
-        distnames: distnum -> distname
-		distToTaz: distnum -> list of taznums
-		tazToDist: taznum  -> list of distnums
-		numdists:  just the number of districts
-	"""		
-	f = open(eqvfile, 'r')
-	eqvtxt = f.read()
-	f.close()
+# Set working and output directories from environment variables
+WORKING_FOLDER          =  'input/trip'
+OUTPUT_FOLDER           =  'output'
 
-	distline_re	= re.compile('DIST (\d+)=(\d+)( .+)?')
-	lines 		= eqvtxt.split("\n")
-	lineno 		= 0
-	distnames	= {}
-	distToTaz	= {}
-	tazToDist	= {} 
-	while (lineno < len(lines)):
-		m 		= distline_re.search(lines[lineno])
-		if (m != None):
-			# distnames[int(m.group(1))] = m.group(2)
-			dist= int(m.group(1))
-			taz = int(m.group(2))
-			if (dist not in distToTaz):
-				distToTaz[dist] = []              
-			distToTaz[dist].append(taz)
-			if (taz not in tazToDist):
-				tazToDist[taz] = []
-			tazToDist[taz].append(dist)
-			if (m.group(3) != None):
-				distnames[dist] = m.group(3).strip(' ')
-		lineno	= lineno + 1
-	numdists	= len(distnames)
-	return (distnames, distToTaz, tazToDist, numdists) 
-  
-#newly added
-def readCtlFile(ctlfile, runsummit=False):
-    config = configparser.ConfigParser()
-    config.read(ctlfile)
-    return config
+# Retrieve the control file path from environment and read its contents
+# This script requires the following files from the control file: 
+# "tazdata.dbf", "modesumSimple3_RPM9.ctl", and "DIST15.eqv"
 
-#----------------------------------------------------Resident Purpose--------------------------------------------------
-rp_params = readCtlFile(os.environ.get('control_file')) #newly added
-input_folder = os.environ.get('input_dir')
-output_folder = os.environ.get('output_dir')
-rp_hh = os.path.join(input_folder, rp_params['resident_purpose']['RP_HH'])
-rp_person = os.path.join(input_folder, rp_params['resident_purpose']['RP_PERSON'])
-rp_tour = os.path.join(input_folder, rp_params['resident_purpose']['RP_TOUR'])
-rp_trips = os.path.join(input_folder, rp_params['resident_purpose']['RP_DISAG_TRIPS'])
-rp_rows = rp_params['resident_purpose']['RP_ROWS'].split(',')
-trips_file = os.path.join(input_folder, rp_params['resident_purpose']['trips_file'])
-eqv_file = os.path.join(input_folder, rp_params['resident_purpose']['eqv_file'])
-time_periods = rp_params['resident_purpose']['time_periods'].split(',')
+CTL_FILE                = 'topsheet.ctl'
 
-print("Getting the inputs from: "+input_folder)
+config = configparser.ConfigParser()
+config.read(CTL_FILE)
+
+rp_hh                   = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_HH'])
+rp_person               = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_PERSON'])
+rp_tour                 = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_TOUR'])
+rp_trips                = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_DISAG_TRIPS'])
+eqv_file                = os.path.join(WORKING_FOLDER, config['resident_purpose']['eqv_file'])
+
+
+
+
 
 class ResidentPurposes:
     RP_HH           = rp_hh
     RP_PERSON       = rp_person
     RP_TOUR         = rp_tour
     RP_DISAG_TRIPS  = rp_trips
-    RP_ROWS         = rp_rows
-    #Can we change the row order? grade, high, college, work, workbased and other?
+    RP_ROWS         = [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals',
+                       'Social & Recreational','Change Mode','Return Home','Total' ]
+    RP_ROWS_TOUR    = [ 'Work', 'Grade School', 'High School', 'College', 'Other', 'Workbased','Escort',
+                    'Personal Business(including medical)','Social & Recreational','Shopping','Meals','Total' ]
+    RP_ROWS_SIMPLIFIED   = [ 'Work', 'School','Return Home' ,'Other']
     RP_PURPOSES     = { 1:RP_ROWS[0], 2:RP_ROWS[1], 3:RP_ROWS[2], 4:RP_ROWS[3], 5:RP_ROWS[4], 6:RP_ROWS[5] }
     
     def __init__(self, eqvfile):
-        #What is this? from champUtil?
         (self.distToName, self.distToTaz, self.tazToDist, _numdists ) = readEqvFile(eqvfile)
         self.purposesByTimeperiod = False
+        self.trip_file = os.path.join(WORKING_FOLDER, "trips.h5")
+        self.tour_file = os.path.join(WORKING_FOLDER, "tours.h5")
+        tp_dict = { "Daily":None, "AM":None, "PM":None, "EV":None, "MD":None,"EA":None}
+        self.purposes_tour = tp_dict.copy()
+        self.purpose = { "district": {"otaz":tp_dict.copy(), "hhtaz": tp_dict.copy(), "dtaz": tp_dict.copy()}}
     
-    def getChampPurpose(self, row, col_dict):
-        #Unable to identify input row and col_dict
-        #could change it into pandas...
-        tour_parent = row[col_dict['parent']]
-        ptype = row[col_dict['pptyp']]
-        xfer_purp = row[col_dict['dpurp']]
-        if tour_parent>0:
-            return ResidentPurposes.RP_ROWS[5] # Workbased
-        elif xfer_purp == 1:
-            return ResidentPurposes.RP_ROWS[0] # Work
+    def getSimplifiedChampPurpose(self, row):
+        xfer_purp = row['dpurp']
+        if xfer_purp == 1:
+            return ResidentPurposes.RP_ROWS_SIMPLIFIED[0] # Work
         elif xfer_purp == 2:
-            if ptype == 7: # child age 5-15
-                return ResidentPurposes.RP_ROWS[1] # Grade School
-            elif ptype == 6: # child age 16+
-                return ResidentPurposes.RP_ROWS[2] # High School
-            else: 
-                return ResidentPurposes.RP_ROWS[3] # College
-        elif xfer_purp == 3:
-            return ResidentPurposes.RP_ROWS[6] #Escorts
-        elif xfer_purp == 4:
-            return ResidentPurposes.RP_ROWS[7] #Personal business
-        elif xfer_purp == 5:
-            return ResidentPurposes.RP_ROWS[9] #Shopping
-        elif xfer_purp == 6:
-            return ResidentPurposes.RP_ROWS[10] # Meals
-        elif xfer_purp == 7:
-            return ResidentPurposes.RP_ROWS[8] #Social
-        elif xfer_purp == 10:
-            return None
+            return ResidentPurposes.RP_ROWS_SIMPLIFIED[1] # School
+        elif xfer_purp == 0:
+            return ResidentPurposes.RP_ROWS_SIMPLIFIED[2] #Home
         else:
-            return ResidentPurposes.RP_ROWS[4] # Other
-    
-    def getTimePeriod(self, row, col_dict):
+            return ResidentPurposes.RP_ROWS_SIMPLIFIED[3] # Other
+
+    def getChampPurpose(self, row,  tour=False):
+        # Determine which purpose mapping to use
+        xfer_purp_key = 'pdpurp' if tour else 'dpurp'
+        xfer_purp = row[xfer_purp_key]
+
+        # Additional logic for tour related purposes
+        if tour:
+            ptype = row['pptyp']
+            if xfer_purp == 1:
+                return ResidentPurposes.RP_ROWS_TOUR[0] # Work
+            if xfer_purp == 2:
+                if ptype == 7:  # child age 5-15
+                    return ResidentPurposes.RP_ROWS_TOUR[1]  # Grade School
+                elif ptype == 6:  # child age 16+
+                    return ResidentPurposes.RP_ROWS_TOUR[2]  # High School
+                else:
+                    return ResidentPurposes.RP_ROWS_TOUR[3]  # College
+            elif xfer_purp == 3:
+                return ResidentPurposes.RP_ROWS_TOUR[6] #Escorts
+            elif xfer_purp == 4:
+                return ResidentPurposes.RP_ROWS_TOUR[7] #Personal business
+            elif xfer_purp == 5:
+                return ResidentPurposes.RP_ROWS_TOUR[9] #Shopping
+            elif xfer_purp == 6:
+                return ResidentPurposes.RP_ROWS_TOUR[10] # Meals
+            elif xfer_purp == 7:
+                return ResidentPurposes.RP_ROWS_TOUR[8] #Social
+            elif xfer_purp == 10:
+                return None
+            else:
+                return ResidentPurposes.RP_ROWS_TOUR[4] # Other
+
+        purpose_map = {
+            0: ResidentPurposes.RP_ROWS[8],  # Home
+            1: ResidentPurposes.RP_ROWS[0],  # Work
+            2: ResidentPurposes.RP_ROWS[1],  # School
+            3: ResidentPurposes.RP_ROWS[2],  # Escort
+            4: ResidentPurposes.RP_ROWS[3],  # Personal Business
+            5: ResidentPurposes.RP_ROWS[4],  # Shopping
+            6: ResidentPurposes.RP_ROWS[5],  # Meals
+            7: ResidentPurposes.RP_ROWS[6],  # Social
+            10: ResidentPurposes.RP_ROWS[7]  # Change Mode
+        }
+
+        return purpose_map.get(xfer_purp, ResidentPurposes.RP_ROWS[4])  # Other as default
+
+    def getTimePeriod(self, row,  tour=False):
         '''EA = early monring(3am till 6am), AM = monring a.m. peak(6am till 9am), 
         MD = midday(9am till 3.30pm), PM = p.m peak(3.30pm till 6.30pm) and EV = evening(6.30pm till 3am)
          ---- Time is given in minutes'''
-        seg_dir = row[col_dict['half']]
-        dep_time = row[col_dict['deptm']]
-        arr_time = row[col_dict['arrtm']]
-        use_time = arr_time if seg_dir==1 else dep_time
+
+        if tour:
+            use_time = row['tlvorig']
+        else: 
+            seg_dir = row['half']
+            dep_time = row['deptm']
+            arr_time = row['arrtm']
+            use_time = arr_time if seg_dir==1 else dep_time
         if use_time>=180 and use_time<=359:
             return 'EA'
         elif use_time>=360 and use_time<=539:
@@ -159,23 +136,11 @@ class ResidentPurposes:
             return 'EV'
         else:
             return None
-    
-    def getResidentPurposes(self, rundir, timePeriod):
-        """
-        *rundir* is where we'll read the TRIPMC file
-        *timePeriod* can be one of "Daily", "AM" or "PM"
-        
-        Returns dictionary of purpose (Work,School,etc) -> 
-           list of trips for that purpose for each district
-        """
-        # if it's done already, return it
-        if self.purposesByTimeperiod:
-            # print("Check")
-            return self.purposesByTimeperiod[timePeriod]
-        
         # otherwise get it
+    def create_trip(self):
+
         trip_df = pd.read_csv(ResidentPurposes.RP_DISAG_TRIPS, sep='\t', 
-                              usecols = ['hhno','pno','tour_id','dpurp','half','deptm','arrtm'])
+                              usecols = ['hhno','pno','tour_id','dpurp','half','deptm','arrtm', 'otaz','dtaz'])
         tour_df = pd.read_csv(ResidentPurposes.RP_TOUR, sep='\t', usecols = ['id','parent'])
         hh_df   = pd.read_csv(ResidentPurposes.RP_HH, sep='\t', usecols = ['hhno','hhtaz'])
         per_df  = pd.read_csv(ResidentPurposes.RP_PERSON, sep='\t', usecols = ['hhno','pno','pptyp'])
@@ -183,98 +148,177 @@ class ResidentPurposes:
         trip_df = trip_df.merge(hh_df, how='left')
         trip_df = trip_df.merge(per_df, how='left')
         trip_df = trip_df.merge(tour_df, how='left', left_on='tour_id', right_on='id')
-        store = pd.HDFStore(trips_file, 'w')
+        trip_df['TimePeriod'] = trip_df.apply(self.getTimePeriod, axis=1)
+        
+        trip_df['trip_purpose'] = trip_df.apply(self.getChampPurpose, axis=1)
+
+        trip_df['origin_district'] = trip_df['otaz'].map(lambda x: self.tazToDist[x][0] if x in self.tazToDist else None)
+        trip_df['destination_district'] = trip_df['dtaz'].map(lambda x: self.tazToDist[x][0] if x in self.tazToDist else None)
+        trip_df['res_district'] = trip_df['hhtaz'].map(lambda x: self.tazToDist[x][0] if x in self.tazToDist else None)
+        
+        trip_df = trip_df[['TimePeriod','trip_purpose',\
+                            'origin_district','destination_district','res_district','otaz','dtaz','hhtaz']]
+        store = pd.HDFStore(self.trip_file, 'w')
         store.put('root', trip_df, format='t')
         store.close()
-        # print(trip_df)
+
+    def getResidentPurposes(self, mode, timePeriod,sourceTaz="hhtaz" ):
+        """
+        *rundir* is where we'll read the TRIPMC file
+        *timePeriod* can be one of "Daily", "AM" or "PM"
         
-        self.purposesByTimeperiod = { "Daily":{}, "AM":{}, "PM":{}}
-        for tp in self.purposesByTimeperiod.keys():
-            for purpose in  ResidentPurposes.RP_ROWS:
-                if purpose == "Total": continue
-                self.purposesByTimeperiod[tp][purpose] = [0,0,0]
+        Returns dictionary of purpose (Work,School,etc) -> 
+           list of trips for that purpose for each district
+        """
 
-        #Can use pandas or h5py instead of tables to do this processing
-        infile = open_file(trips_file, mode="r")
-        col_names = infile.get_node('/root', 'table')._v_attrs.values_block_0_kind
-        col_idx_dict = dict([(col,i) for col,i in zip(col_names, list(range(len(col_names))))])        
-#         print strftime("%x %X", localtime()) + " started Resident Purposes processing"
-        for row in infile.get_node('/root', 'table'):
-            row = row[1]
-            # print((self.tazToDist[row[col_idx_dict['hhtaz']]]))
-            resdist = int(self.tazToDist[row[col_idx_dict['hhtaz']]][0])
-            purpose = self.getChampPurpose(row, col_idx_dict) #what if we pass the whole df and get the whole result together??
-            if purpose != None:
-                timeperiod = self.getTimePeriod(row, col_idx_dict)
-                 
-                if timeperiod == "AM" or timeperiod == "PM":
-                    self.purposesByTimeperiod[timeperiod][purpose][resdist-1] += 1
-                 
-                self.purposesByTimeperiod["Daily"][purpose][resdist-1] += 1
+                        # "taz":{"otaz":tp_dict, "hhtaz": tp_dict, "dtaz": tp_dict},
+        if mode == 'district' and self.purpose[mode][sourceTaz][timePeriod] is not None:
+            return self.purpose[mode][sourceTaz][timePeriod]
+        if not os.path.exists(self.trip_file):
+            self.create_trip()
+
+        dist_map = {"hhtaz":'res_district', "otaz":'origin_district', 'dtaz':'destination_district'}
+        with pd.HDFStore(self.trip_file, 'r') as store:
+            if mode == "district":
+                columns_to_load = ['TimePeriod','trip_purpose',dist_map[sourceTaz]] 
+            else:
+                columns_to_load = ['TimePeriod','trip_purpose',sourceTaz] 
+            df = store.select('root', columns=columns_to_load)
+        if timePeriod != 'Daily':
+            df = df[df['TimePeriod'] == timePeriod]
+        if mode == "district":
+            grouped = df.groupby([dist_map[sourceTaz], 'trip_purpose' ]).size().reset_index(name='counts')
+            pivot_df = grouped.pivot(index='trip_purpose', columns= dist_map[sourceTaz], values='counts').T
+            pivot_df.columns.name = None
+            pivot_df['District'] = pivot_df.index
+        else:
+            grouped = df.groupby([sourceTaz, 'trip_purpose' ]).size().reset_index(name='counts')
+            pivot_df = grouped.pivot(index='trip_purpose', columns=sourceTaz, values='counts').T
+            pivot_df.columns.name = None
+            pivot_df['District'] = pivot_df.index
+        if mode == "district":
+            self.purpose[mode][sourceTaz][timePeriod] = pivot_df
+        return pivot_df
 
 
-#         print strftime("%x %X", localtime()) + " completed."
-        # print self.purposesByTimeperiod[timePeriod]
 
-        infile.close()
-        print("Done!")
-        return self.purposesByTimeperiod[timePeriod]
+    def create_tour(self):
 
+        tour_df = pd.read_csv(ResidentPurposes.RP_TOUR, sep='\t', usecols = ['id','hhno','pno','parent','pdpurp','tlvorig'])
+        hh_df   = pd.read_csv(ResidentPurposes.RP_HH, sep='\t', usecols = ['hhno','hhtaz'])
+        per_df  = pd.read_csv(ResidentPurposes.RP_PERSON, sep='\t', usecols = ['hhno','pno','pptyp'])
 
+        tour_df = tour_df.merge(hh_df, how='left',on='hhno')
+        tour_df = tour_df.merge(per_df, how='left',on=['pno','hhno'])
+        tour_df['TimePeriod'] = tour_df.apply(lambda row: self.getTimePeriod(row, True),axis=1)
+        tour_df['purpose'] = tour_df.apply(lambda row: self.getChampPurpose(row, True),axis=1)
+        tour_df['district'] = tour_df['hhtaz'].map(lambda x: self.tazToDist[x][0] if x in self.tazToDist else None)    
 
-def getResidentPurposeFiles(eqv, loc, time = ['Daily']):
-    """
-    Write the resident purpose dictionary into csv and markdown files
-    """
-    rp = ResidentPurposes(eqv)
+        tour_df = tour_df[['TimePeriod','purpose',\
+                            'district','hhtaz']]
+        store = pd.HDFStore(self.tour_file, 'w')
+        store.put('root', tour_df, format='t')
+        store.close()
 
-    for t in time:
-        file_name = 'purpose_'+t
-        # print(file_name)
-        purpose_dict = rp.getResidentPurposes('./',t)
-        purpose_df = pd.DataFrame(data = purpose_dict)
-        purpose_df = purpose_df.transpose().reset_index()
-        purpose_df.columns = ['Purpose','Downtown','San Francisco','Bay Area']
-        # purpose_df1=purpose_df.copy()
-        purpose_df['San Francisco'] = purpose_df['Downtown']+purpose_df['San Francisco']
-        purpose_df['Bay Area'] = purpose_df['Bay Area']+purpose_df['San Francisco']
+    def getResidentPurposesTour(self, timePeriod):
+        if self.purposes_tour[timePeriod] is not None:
+            return self.purposes_tour[timePeriod]
+        if not os.path.exists(self.tour_file):
+            self.create_tour()
+
+        with pd.HDFStore(self.tour_file, 'r') as store:
+            df = store.select('root')
+        if timePeriod != 'Daily':
+            df = df[df['TimePeriod'] == timePeriod]
+
+        grouped = df.groupby(['district', 'purpose' ]).size().reset_index(name='counts')
+        pivot_df = grouped.pivot(index='purpose', columns= 'district', values='counts').T
+        pivot_df.columns.name = None
+        pivot_df['District'] = pivot_df.index
+
+        self.purposes_tour[timePeriod] = pivot_df
+        return pivot_df
         
-        purpose_df.drop(4,inplace=True) # removing Others
-        # purpose_df1.drop(4,inplace=True) # removing Others
 
-        total_row = ['Total',purpose_df['Downtown'].sum(),purpose_df['San Francisco'].sum(),purpose_df['Bay Area'].sum()]
-        purpose_df.loc[11] = total_row
-        purpose_df['Downtown %'] = purpose_df['Downtown']/total_row[1]
-        purpose_df['SF %'] = purpose_df['San Francisco']/total_row[2]
-        purpose_df['Bay %'] = purpose_df['Bay Area']/total_row[3]
-        purpose_df['Downtown']=purpose_df.apply(lambda x: "{:,}".format(x['Downtown']), axis=1)
-        purpose_df['San Francisco']=purpose_df.apply(lambda x: "{:,}".format(x['San Francisco']), axis=1)
-        purpose_df['Bay Area']=purpose_df.apply(lambda x: "{:,}".format(x['Bay Area']), axis=1)
+ 
+rp = ResidentPurposes(eqv_file)
+for tazSource in ["otaz", "dtaz", "hhtaz"]:
+    for mapType in ["district","taz"]:
+        df = rp.getResidentPurposes(mapType,'Daily',tazSource)
+        df.reset_index(inplace=True,names='TAZs') 
+        if mapType == "district":
+            df['District'] = df['TAZs'].map(rp.distToName)
+            df.at[2, 'District'] = 'N.Beach/'
+            df.at[3, 'District'] = 'Western'
+            df.at[4, 'District'] = 'Mission/'
+            df.at[5, 'District'] = 'Noe/'
+            df.at[6, 'District'] = 'Marina/'
+            df.at[9, 'District'] = 'Outer'
+            df.at[10, 'District'] = 'Hill'
+        df.fillna(0,inplace=True)
+        output_file = f'{mapType}_rpurpose_{tazSource[0]}.csv'
+        df.to_csv(os.path.join(OUTPUT_FOLDER,output_file),index=False)
 
-        csvfile_path = os.path.join(loc, file_name + '.csv')
-        #CSV table
-        purpose_df2=purpose_df.copy()
-        purpose_df2.drop(11,inplace=True)
-        purpose_df2.to_csv(csvfile_path, sep='\t',index=False)
 
-        #Markdown table
-        markdown_table = purpose_df.to_markdown(index=False).split('\n')
-        header_row = markdown_table[0]
-        header_row = '| ' + ' | '.join(f'**{header.strip()}**' for header in header_row.split('|')[1:-1]) + ' |'
-        markdown_table[0] = header_row
-        markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::',':')[1:-1]
-        markdown_table = '\n'.join(markdown_table)
+purpose_dict={}
+timeperiods = ['Daily','AM','MD','PM','EV','EA']
+for t in timeperiods:
+    purpose_dict[t] = rp.getResidentPurposes("district",t)
+purpose_df1 = purpose_dict['Daily']
+purpose_df1['District'] = purpose_df1['District'].map(rp.distToName)
+purpose_df1.index = purpose_df1['District']
 
-        # print(markdown_table)
-        mdfile_path = os.path.join(loc, file_name + '.md')
-        # print(mdfile_path)
-        with open(mdfile_path, 'w') as f:
-            f.write(markdown_table)
-        
-        print(f"Both files for {t} are finished writing!!!!")
-            
-    
-    return "Resident Purpose files are written in " + loc
-    
+purpose_df1.drop(['District'],axis=1,inplace=True)
+sum_first_12_rows = purpose_df1.iloc[:12].sum()
+sum_all_rows = purpose_df1.sum()
 
-getResidentPurposeFiles(eqv = eqv_file, loc = output_folder, time = time_periods)
+
+sum_df = pd.DataFrame([sum_all_rows,sum_first_12_rows], index=['Bay Area', 'San Francisco'])
+
+# Concatenate the new DataFrame with the original DataFrame
+df = pd.concat([sum_df, purpose_df1])
+df.index.name = 'Districts'
+df['All Purpose'] = df.apply(lambda row: sum(row),axis=1)
+column_order = [
+    "Work", "School", "Escort", "Personal Business & Medical", 
+    "Shopping", "Meals", "Social & Recreational", "Change Mode", 
+    "Return Home", "All Purpose"
+]
+df = df[column_order]
+
+df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_all.csv'))
+
+res = {}
+for tp in timeperiods[1:]:
+    temp = purpose_dict[tp]
+    row_sum = temp.iloc[0:12].sum()
+    res[tp] = row_sum
+tod_df = pd.DataFrame(data=res).T
+tod_df.drop('District',axis=1,inplace=True)
+tod_df['All Purpose'] = tod_df.apply(lambda row: sum(row),axis=1)
+tod_df = tod_df[column_order]
+tod_df.index.name = 'TOD'
+tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_tod.csv'))
+
+purpose_dict={}
+timeperiods = ['Daily','AM','MD','PM','EV','EA']
+for t in timeperiods:
+    purpose_dict[t] = rp.getResidentPurposesTour(t)
+purpose_df1 = purpose_dict['Daily']
+purpose_df1['District'] = purpose_df1['District'].map(rp.distToName)
+purpose_df1.index = purpose_df1['District']
+
+purpose_df1.drop(['District'],axis=1,inplace=True)
+purpose_df1.index.name = 'Districts'
+purpose_df1.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_all_tour.csv'))
+
+res = {}
+for tp in timeperiods[1:]:
+    temp = purpose_dict[tp]
+    row_sum = temp.iloc[0:12].sum()
+    res[tp] = row_sum
+tod_df = pd.DataFrame(data=res).T
+tod_df.drop('District',axis=1,inplace=True)
+tod_df['All Purpose'] = tod_df.apply(lambda row: sum(row),axis=1)
+tod_df.index.name = 'TOD'
+tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_tod_tour.csv'))
