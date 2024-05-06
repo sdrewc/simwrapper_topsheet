@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import pandas as pd
 import datetime,os,re,sys,subprocess
 from socket import gethostname
@@ -7,9 +7,8 @@ import configparser
 from simpledbf import Dbf5 as dbf
 import datetime,os,re,sys,subprocess
 from tables import open_file
-from utilTools import readEqvFile, readCtlFile
+from utilTools import readEqvFile, readCtlFile, modifyDistrictNameForMap,DataFrameToCustomHTML
 import tables
-
 
 # Set working and output directories from environment variables
 WORKING_FOLDER          =  'input/trip'
@@ -178,24 +177,27 @@ class ResidentPurposes:
             self.create_trip()
 
         dist_map = {"hhtaz":'res_district', "otaz":'origin_district', 'dtaz':'destination_district'}
+        columns_to_load = ['TimePeriod', 'trip_purpose', dist_map[sourceTaz] if mode == "district" else sourceTaz]
+        pivot_df = None
         with pd.HDFStore(self.trip_file, 'r') as store:
-            if mode == "district":
-                columns_to_load = ['TimePeriod','trip_purpose',dist_map[sourceTaz]] 
-            else:
-                columns_to_load = ['TimePeriod','trip_purpose',sourceTaz] 
-            df = store.select('root', columns=columns_to_load)
-        if timePeriod != 'Daily':
-            df = df[df['TimePeriod'] == timePeriod]
-        if mode == "district":
-            grouped = df.groupby([dist_map[sourceTaz], 'trip_purpose' ]).size().reset_index(name='counts')
-            pivot_df = grouped.pivot(index='trip_purpose', columns= dist_map[sourceTaz], values='counts').T
+            chunksize = 100000  # Adjust chunksize based on system's memory capacity
+            iterator = store.select('root', columns=columns_to_load, chunksize=chunksize)
+
+            for df in iterator:
+                if timePeriod != 'Daily':
+                    df = df[df['TimePeriod'] == timePeriod]
+
+                grouped = df.groupby([dist_map[sourceTaz] if mode == "district" else sourceTaz, 'trip_purpose']).size().reset_index(name='counts')
+                temp_pivot = grouped.pivot(index='trip_purpose', columns=dist_map[sourceTaz] if mode == "district" else sourceTaz, values='counts').T
+
+                if pivot_df is None:
+                    pivot_df = temp_pivot
+                else:
+                    pivot_df = pivot_df.add(temp_pivot, fill_value=0)
+        if pivot_df is not None:
             pivot_df.columns.name = None
             pivot_df['District'] = pivot_df.index
-        else:
-            grouped = df.groupby([sourceTaz, 'trip_purpose' ]).size().reset_index(name='counts')
-            pivot_df = grouped.pivot(index='trip_purpose', columns=sourceTaz, values='counts').T
-            pivot_df.columns.name = None
-            pivot_df['District'] = pivot_df.index
+
         if mode == "district":
             self.purpose[mode][sourceTaz][timePeriod] = pivot_df
         return pivot_df
@@ -248,13 +250,7 @@ for tazSource in ["otaz", "dtaz", "hhtaz"]:
         df.reset_index(inplace=True,names='TAZs') 
         if mapType == "district":
             df['District'] = df['TAZs'].map(rp.distToName)
-            df.at[2, 'District'] = 'N.Beach/'
-            df.at[3, 'District'] = 'Western'
-            df.at[4, 'District'] = 'Mission/'
-            df.at[5, 'District'] = 'Noe/'
-            df.at[6, 'District'] = 'Marina/'
-            df.at[9, 'District'] = 'Outer'
-            df.at[10, 'District'] = 'Hill'
+            df = modifyDistrictNameForMap(df, 'District')
         df.fillna(0,inplace=True)
         output_file = f'{mapType}_rpurpose_{tazSource[0]}.csv'
         df.to_csv(os.path.join(OUTPUT_FOLDER,output_file),index=False)
@@ -284,9 +280,14 @@ column_order = [
     "Shopping", "Meals", "Social & Recreational", "Change Mode", 
     "Return Home", "All Purpose"
 ]
-df = df[column_order]
 
-df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_all.csv'))
+df_dis = df[column_order].iloc[2:14].copy()
+df_dis.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_all.csv'))
+df = df.astype(int)
+df = df.reset_index()
+df2md = DataFrameToCustomHTML([0,1,14,15,16], [0])
+df2md.generate_html(df, os.path.join(OUTPUT_FOLDER,"purpose_dist_daily.md"))
+
 
 res = {}
 for tp in timeperiods[1:]:
@@ -297,20 +298,31 @@ tod_df = pd.DataFrame(data=res).T
 tod_df.drop('District',axis=1,inplace=True)
 tod_df['All Purpose'] = tod_df.apply(lambda row: sum(row),axis=1)
 tod_df = tod_df[column_order]
+
 tod_df.index.name = 'TOD'
-tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_tod.csv'))
+tod_df = tod_df.astype(int)
+tod_df = tod_df.reset_index()
+df2md = DataFrameToCustomHTML([], [0])
+df2md.generate_html(tod_df, os.path.join(OUTPUT_FOLDER,"purpose_tod.md"))
+tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_tod.csv'))
 
 purpose_dict={}
 timeperiods = ['Daily','AM','MD','PM','EV','EA']
 for t in timeperiods:
     purpose_dict[t] = rp.getResidentPurposesTour(t)
 purpose_df1 = purpose_dict['Daily']
-purpose_df1['District'] = purpose_df1['District'].map(rp.distToName)
-purpose_df1.index = purpose_df1['District']
-
+column_order_tour = ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
+purpose_df1.index = purpose_df1.index.map(rp.distToName)
 purpose_df1.drop(['District'],axis=1,inplace=True)
-purpose_df1.index.name = 'Districts'
-purpose_df1.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_all_tour.csv'))
+
+purpose_csv = purpose_df1[column_order_tour].iloc[0:12].copy()
+purpose_csv.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_all_tour.csv'))
+
+purpose_df1 = purpose_df1.astype(int)
+purpose_df1.index.name = 'District'
+purpose_df1 = purpose_df1.reset_index()
+df2md = DataFrameToCustomHTML([], [0])
+df2md.generate_html(purpose_df1, os.path.join(OUTPUT_FOLDER,"purpose_all_tour.md"))
 
 res = {}
 for tp in timeperiods[1:]:
@@ -319,6 +331,10 @@ for tp in timeperiods[1:]:
     res[tp] = row_sum
 tod_df = pd.DataFrame(data=res).T
 tod_df.drop('District',axis=1,inplace=True)
-tod_df['All Purpose'] = tod_df.apply(lambda row: sum(row),axis=1)
 tod_df.index.name = 'TOD'
-tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'puporse_tod_tour.csv'))
+tod_df = tod_df[column_order_tour].copy()
+tod_df = tod_df.astype(int)
+tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_tod_tour.csv'))
+tod_df = tod_df.reset_index()
+df2md = DataFrameToCustomHTML([], [0])
+df2md.generate_html(tod_df, os.path.join(OUTPUT_FOLDER,"purpose_tod_tour.md"))

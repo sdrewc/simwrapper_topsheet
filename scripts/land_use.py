@@ -4,7 +4,7 @@ import re,os
 from tabulate import tabulate
 import configparser
 import itertools
-from utilTools import readEqvFile, readCtlFile
+from utilTools import readEqvFile, DataFrameToCustomHTML, modifyDistrictNameForMap
 
 # Set working and output directories from environment variables
 WORKING_FOLDER          =  'input/landuse'
@@ -118,14 +118,34 @@ def calcualte_densities(eqvfile,LU_FILE,SQ_FILE,accumulated):
     mergedf = df.merge(tazdf[['DISTRICT_NAME', 'SQ_MILE']], left_on='index', right_on='DISTRICT_NAME', how='left')
     mergedf.drop(columns='DISTRICT_NAME', inplace=True)
     mergedf = mergedf.rename(columns={'index': 'DISTRICT_NAME'})
-    mergedf['HH_DENSITY'] = mergedf['Households'] / mergedf['SQ_MILE']
-    mergedf['POP_DENSITY'] = mergedf['Population'] / mergedf['SQ_MILE']
-    mergedf['EMPRES_DENSITY'] = mergedf['Employed Residents'] / mergedf['SQ_MILE']
-    mergedf['TOTALEMP_DENSITY'] = mergedf['Total Employment'] / mergedf['SQ_MILE']
+    mergedf['HH DENSITY'] = mergedf['Households'] / mergedf['SQ_MILE']
+    mergedf['POP DENSITY'] = mergedf['Population'] / mergedf['SQ_MILE']
+    mergedf['EMP RES DENSITY'] = mergedf['Employed Residents'] / mergedf['SQ_MILE']
+    mergedf['TOTAL EMP DENSITY'] = mergedf['Total Employment'] / mergedf['SQ_MILE']
     mergedf = mergedf.rename(columns={'Households':'HH','Population':'POP','Employed Residents':'EMPRES','Total Employment':'JOB'})
     
     return mergedf
-
+def merge_luFiles(LU_FILE, LU_CLEAN_FILE,taz=True):
+    
+    df = Dbf5(LU_FILE).to_dataframe()
+    tazdf = Dbf5(LU_CLEAN_FILE).to_dataframe()
+    filtered_df = df[df['SFTAZ'].isin(tazToDist.keys())]
+    relevant_columns = ['SFTAZ', 'HHLDS', 'POP', 'EMPRES', 'CIE', 'MED', 'MIPS', 'PDR', 'RETAIL', 'VISITOR', 'TOTALEMP']
+    merged_df = filtered_df[relevant_columns].merge(
+        tazdf[['TAZ', 'SQ_MILE']], left_on='SFTAZ', right_on='TAZ', how='left'
+    )
+    merged_df['DISTRICT'] = merged_df['SFTAZ'].apply(lambda x: tazToDist[x][0])
+    if not taz:
+        merged_df = merged_df.groupby('DISTRICT').sum()
+        merged_df['DISTRICT_NAME'] = merged_df.index.map(distnames)
+    else:
+        merged_df['DISTRICT_NAME'] = merged_df['DISTRICT'].map(distnames)
+    merged_df['HH DENSITY'] = merged_df['HHLDS'] / merged_df['SQ_MILE']
+    merged_df['POP DENSITY'] = merged_df['POP'] / merged_df['SQ_MILE']
+    merged_df['EMP RES DENSITY'] = merged_df['EMPRES'] / merged_df['SQ_MILE']
+    merged_df['TOTAL EMP DENSITY'] = merged_df['TOTALEMP'] / merged_df['SQ_MILE']
+    
+    return merged_df
 
 if __name__ == "__main__":
 
@@ -137,34 +157,18 @@ if __name__ == "__main__":
     area_density_df.iloc[[0, 1]] = area_density_df.iloc[[1, 0]].values
 
     combined_df = pd.concat([area_density_df, district_density_df], ignore_index=True)
-    combined_df[['HH_DENSITY','POP_DENSITY','EMPRES_DENSITY','TOTALEMP_DENSITY']] = combined_df[['HH_DENSITY','POP_DENSITY','EMPRES_DENSITY','TOTALEMP_DENSITY']].astype(int)
+    combined_df[['HH DENSITY','POP DENSITY','EMP RES DENSITY','TOTAL EMP DENSITY']] = combined_df[['HH DENSITY','POP DENSITY','EMP RES DENSITY','TOTAL EMP DENSITY']].astype(int)
     combined_df.drop('SQ_MILE',axis=1,inplace=True)
     combined_df = combined_df.set_index('DISTRICT_NAME')
     combined_df.index.name = 'Geography'
-
-
-
+    combined_df = combined_df.reset_index()
+    df2html = DataFrameToCustomHTML( [0,1,2,14,15,16],[0], [0])
     md_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}.md')
 
-    formatted_df = combined_df.copy()
-    for col in formatted_df.columns:
-        if pd.api.types.is_numeric_dtype(formatted_df[col]):
-            formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
-    markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
-    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
+    df2html.generate_html(combined_df, md_path)
 
-    alignment_row = markdown_table[1].split('|')[1:-1]
-    for i, cell in enumerate(alignment_row):
-        if i > 0: 
-            alignment_row[i] = "---:"
-    markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
-    markdown_table = '\n'.join(markdown_table)
-    with open(md_path, 'w') as f:
-        f.write(markdown_table)
-
-
-    csv_df = district_density_df[['DISTRICT_NAME','HH_DENSITY',
-        'POP_DENSITY', 'EMPRES_DENSITY', 'TOTALEMP_DENSITY']]
+    csv_df = district_density_df[['DISTRICT_NAME','HH DENSITY',
+        'POP DENSITY', 'EMP RES DENSITY', 'TOTAL EMP DENSITY']]
 
     csv_df = csv_df.set_index('DISTRICT_NAME')
     csv_df.index.name = 'Area'
@@ -172,61 +176,36 @@ if __name__ == "__main__":
     csv_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}.csv')
     csv_df.to_csv(csv_path, index=False)
 
+
+
     distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
-    dbf = Dbf5(LU_FILE)
-    df = dbf.to_dataframe()
-    filtered_df = df[df['SFTAZ'].isin(tazToDist.keys())]
-    res_df = filtered_df[['SFTAZ','HHLDS','POP','EMPRES','CIE','MED','MIPS','PDR','RETAIL','VISITOR','TOTALEMP']]
-    tazdbf = Dbf5(LU_CLEAN_FILE )
-    tazdf = tazdbf.to_dataframe()
-    merged_df = res_df.merge(tazdf[['TAZ', 'SQ_MILE']], left_on='SFTAZ', right_on='TAZ', how='left')
-    merged_df['HH_DENSITY'] = merged_df['HHLDS'] / merged_df['SQ_MILE']
-    merged_df['POP_DENSITY'] = merged_df['POP'] / merged_df['SQ_MILE']
-    merged_df['EMPRES_DENSITY'] = merged_df['EMPRES'] / merged_df['SQ_MILE']
-    merged_df['TOTALEMP_DENSITY'] = merged_df['TOTALEMP'] / merged_df['SQ_MILE']
-    merged_df['DISTRICT_NAME'] = merged_df.apply(lambda row : distnames[tazToDist[row['SFTAZ']][0]], axis=1)
+    merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE)
+    merged_df.rename(columns={
+    'HH DENSITY': 'Households Density', 'POP DENSITY': 'Population Density', 'EMP RES DENSITY': 'Employed Residents Density',
+    'EMPRES': 'Employed Residents Value', 'TOTALEMP': 'Employment Value', 'TOTAL EMP DENSITY': 'Employment Density',
+    'HHLDS': 'Households Value', 'POP': 'Population Value'
+}, inplace=True)
     taz_map_csv  = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}_density.csv')
     merged_df.to_csv(taz_map_csv,index=False)
 
 
 
-    distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
-    df = Dbf5(LU_FILE).to_dataframe()
-    tazdf = Dbf5(LU_CLEAN_FILE).to_dataframe()
+    
+    merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE, False)
 
-
-    filtered_df = df[df['SFTAZ'].isin(tazToDist.keys())]
-    relevant_columns = ['SFTAZ', 'HHLDS', 'POP', 'EMPRES', 'CIE', 'MED', 'MIPS', 'PDR', 'RETAIL', 'VISITOR', 'TOTALEMP']
-    merged_df = filtered_df[relevant_columns].merge(
-        tazdf[['TAZ', 'SQ_MILE']], left_on='SFTAZ', right_on='TAZ', how='left'
-    )
-
-    # Calculate district summaries and densities
-    merged_df['DISTRICT'] = merged_df['SFTAZ'].apply(lambda x: tazToDist[x][0])
-    grouped_df = merged_df.groupby('DISTRICT').sum()
-    for col in ['HHLDS', 'POP', 'EMPRES', 'TOTALEMP']:
-        grouped_df[f'{col}_DENSITY'] = grouped_df[col] / grouped_df['SQ_MILE']
-    grouped_df['DISTRICT_NAME'] = grouped_df.index.map(distnames)
-    grouped_df = grouped_df.reset_index()
-
-    # Format final dataframe
-    columns = ['DISTRICT', 'HHLDS', 'POP', 'EMPRES', 'TOTALEMP', 'HHLDS_DENSITY', 'POP_DENSITY', 'EMPRES_DENSITY', 'TOTALEMP_DENSITY', 'DISTRICT_NAME']
-    final_df = grouped_df[columns]
-    final_df.index.name = 'Area'
+    columns = [ 'HHLDS', 'POP', 'EMPRES', 'TOTALEMP', 'HH DENSITY', 'POP DENSITY', 'EMP RES DENSITY', 'TOTAL EMP DENSITY', 'DISTRICT_NAME']
+    final_df = merged_df[columns]
     final_df.rename(columns={
-        'HHLDS_DENSITY': 'Households Density', 'POP_DENSITY': 'Population Density', 'EMPRES_DENSITY': 'Employed Residents Density',
-        'EMPRES': 'Employed Residents Value', 'TOTALEMP': 'Employment Value', 'TOTALEMP_DENSITY': 'Employment Density',
+        'HH DENSITY': 'Households Density', 'POP DENSITY': 'Population Density', 'EMP RES DENSITY': 'Employed Residents Density',
+        'EMPRES': 'Employed Residents Value', 'TOTALEMP': 'Employment Value', 'TOTAL EMP DENSITY': 'Employment Density',
         'HHLDS': 'Households Value', 'POP': 'Population Value'
     }, inplace=True)
-
-    # Adjust area names
+    final_df.index.name = 'Area'
     area_adjustments = {
         2: 'N.Beach/', 3: 'Western', 4: 'Mission/', 5: 'Noe/', 6: 'Marina/', 9: 'Outer', 10: 'Hill'
     }
-    final_df['Area'] = final_df['DISTRICT_NAME']
-    for idx, name in area_adjustments.items():
-        final_df.at[idx, 'Area'] = name
+    final_df = final_df.reset_index()
+    final_df = modifyDistrictNameForMap(final_df, 'DISTRICT_NAME')
 
-    # Save to CSV
     csv_path = os.path.join(OUTPUT_FOLDER, f'{OUTPUT_FILE_NAME}_district.csv')
     final_df.to_csv(csv_path, index=False)
