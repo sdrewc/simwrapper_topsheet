@@ -7,114 +7,262 @@ layout:
     - type: text
       title: 'Muni Boardings Table'
       description: 'Table showing daily muni boardings in San Francisco'
-      file: 'content/Transit_muni_boardings_Daily.md'
+      file: 'Transit_muni_boardings_Daily.md'
 
     - type: text
       title: 'Rail Volumes Table'
       description: 'Table showing daily inbound and outbound rail volumes'
-      file: 'content/Transit_rail_volumes_Daily.md'
+      file: 'Transit_rail_volumes_Daily.md'
 
   Transit1:
     - type: text
       title: 'Rail Boardings Table'
       description: 'Table showing daily rail boardings for Downtown, San Francisco and the Bay Area'
-      file: 'content/Transit_rail_boardings_Daily.md'
+      file: 'Transit_rail_boardings_Daily.md'
 
     - type: text
       title: 'Bus Volumes Table'
       description: 'Table showing daily inbound and outbound bus volumes'
-      file: 'content/Transit_bus_volumes_Daily.md'
+      file: 'Transit_bus_volumes_Daily.md'
   
   Map Muni Bus:
     - type: map
       height: 10
-      title: Muni Bus
+      title: AM Muni Bus Transit Crowding Map
+      description: This map showcases the AM transit crowding levels for Muni Bus. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
       zoom: 11.1
       center:
           - -122.42
           - 37.77
-      shapes: shapefiles/freeflow.shp
+      shapes: bus.shp
       datasets:
           muniBus:
-              file: data/test_muniBus.csv
+              file: reg_am.csv
               join: AB
       display:
           lineColor:
-              dataset: muniBus
-              columnName: AB_VOL
+              dataset:  muniBus
+              columnName: crowd
               colorRamp:
-                  ramp: Blues
-                  steps: 20
+                ramp: Oranges
+                steps: 4
+                breakpoints:  0.5, 0.85, 1
           lineWidth:
               dataset: muniBus
               columnName: AB_VOL
-              scaleFactor: 1000
+              scaleFactor: 500
       filters:
-          shapes.FT!: "6"
+          # shapes.FT!: "6"
           muniBus.AB_VOL!: "0"
       tooltip:
           - muniBus.AB_VOL
           - shapes.AB
-          - shapes.STREETNAME
+          - muniBus.crowd
+          # - shapes.STREETNAME
+    - type: map
+      height: 10
+      title: PM Muni Bus Transit Crowding Map
+      description: This map showcases the PM transit crowding levels for Muni Bus. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: bus.shp
+      datasets:
+          muniBus:
+              file: reg_pm.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniBus
+              columnName: crowd
+              join: AB
+              colorRamp:
+                  ramp: Oranges
+                  steps: 4
+          lineWidth:
+              dataset: muniBus
+              columnName: AB_VOL
+              join: AB
+              scaleFactor: 500
+      filters:
+          # shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
+      tooltip:
+          - muniBus.AB_VOL
+          - shapes.AB
+          - muniBus.crowd
   Map Muni Rail:
     - type: map
       height: 10
-      title: Muni Rail
+      title: AM Muni Rail Transit Crowding Map
+      description: This map showcases the AM transit crowding levels for Muni Rail. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
       zoom: 11.1
       center:
           - -122.42
           - 37.77
-      shapes: shapefiles/freeflow.shp
+      shapes: rail.shp
       datasets:
-          muniRail:
-              file: data/test_muniRail.csv
+          muniBus:
+              file: reg_am.csv
               join: AB
       display:
           lineColor:
-              dataset: muniRail
-              columnName: AB_VOL
-              colorRamp:
-                  ramp: Oranges
-                  steps: 20
-          lineWidth:
-              dataset: muniRail
-              columnName: AB_VOL
-              scaleFactor: 1000
-      filters:
-          shapes.FT!: "6"
-          muniRail.AB_VOL!: "0"
-      tooltip:
-          - muniRail.AB_VOL
-          - shapes.AB
-          - shapes.STREETNAME
-  Map Regional Transit:
-    - type: map
-      height: 10
-      title: Regional Transit
-      zoom: 11.1
-      center:
-          - -122.42
-          - 37.77
-      shapes: shapefiles/freeflow.shp
-      datasets:
-          regionalTransit:
-              file: data/test_regionalTransit.csv
+              dataset: muniBus
+              columnName: crowd
               join: AB
-      display:
-          lineColor:
-              dataset: regionalTransit
-              columnName: AB_VOL
               colorRamp:
                   ramp: Greens
-                  steps: 20
+                  steps: 4
           lineWidth:
-              dataset: regionalTransit
+              dataset: muniBus
               columnName: AB_VOL
+              join: AB
               scaleFactor: 1000
       filters:
-          shapes.FT!: "6"
-          regionalTransit.AB_VOL!: "0"
+          # shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
       tooltip:
-          - regionalTransit.AB_VOL
+          - muniBus.AB_VOL
           - shapes.AB
-          - shapes.STREETNAME
+          - muniBus.crowd
+          # - shapes.STREETNAME
+    - type: map
+      height: 10
+      title: PM Muni Rail Transit Crowding Map
+      description: This map showcases the PM transit crowding levels for Muni Rail. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: rail.shp
+      datasets:
+          muniBus:
+              file: reg_pm.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniBus
+              columnName: crowd
+              join: AB
+              colorRamp:
+                  ramp: Greens
+                  steps: 4
+          lineWidth:
+              dataset: muniBus
+              columnName: AB_VOL
+              join: AB
+              scaleFactor: 1000
+      filters:
+          # shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
+      tooltip:
+          - muniBus.AB_VOL
+          - shapes.AB
+          - muniBus.crowd
+          # - shapes.STREETNAME
+  Map Regional:
+    - type: map
+      height: 10
+      title: AM Regional Transit Crowding Map
+      description: This map showcases the AM transit crowding levels for regional transit. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: reg.shp
+      datasets:
+          muniBus:
+              file: reg_am.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniBus
+              columnName: crowd
+              join: AB
+              colorRamp:
+                  ramp: Blues
+                  steps: 4
+          lineWidth:
+              dataset: muniBus
+              columnName: AB_VOL
+              join: AB
+              scaleFactor: 1000
+      filters:
+          # shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
+      tooltip:
+          - muniBus.AB_VOL
+          - shapes.AB
+          - muniBus.crowd
+          # - shapes.STREETNAME
+    - type: map
+      height: 10
+      title: PM Regional Transit Crowding Map
+      description: This map showcases the PM transit crowding levels for Muni Rail. The color indicates the degree of crowding (volume to capacity ratio), while the line width signifies the total volume.
+      zoom: 11.1
+      center:
+          - -122.42
+          - 37.77
+      shapes: reg.shp
+      datasets:
+          muniBus:
+              file: reg_pm.csv
+              join: AB
+      display:
+          lineColor:
+              dataset: muniBus
+              columnName: crowd
+              join: AB
+              colorRamp:
+                  ramp: Blues
+                  steps: 4
+          lineWidth:
+              dataset: muniBus
+              columnName: AB_VOL
+              join: AB
+              scaleFactor: 1000
+      filters:
+          # shapes.FT!: "6"
+          muniBus.AB_VOL!: "0"
+      tooltip:
+          - muniBus.AB_VOL
+          - shapes.AB
+          - muniBus.crowd
+          # - shapes.STREETNAME
+  # Node Map:
+  #   - type: map
+  #     height: 10
+  #     title: Nodes map
+  #     zoom: 11.1
+  #     center:
+  #         - -122.42
+  #         - 37.77
+  #     shapes: 
+  #       file: FREEFLOW_nodes.shp
+  #       join: N
+  #     datasets:
+  #       boardings: 
+  #         file: test_node.csv
+  #         join: N
+  #     display:
+  #         fill:
+  #           dataset: boardings
+  #           join: N
+  #           columnName: AB_BRDA
+  #           colorRamp:
+  #             ramp: Plasma
+  #             steps: 9
+  #         radius:
+  #           dataset: boardings
+  #           columnName: AB_BRDA
+  #           scaleFactor: 80
+  #           join: N
+  #     filters: 
+  #         boardings.AB_BRDA!: "0"
+  #     tooltip:
+  #       - boardings.AB_BRDA
+  #       - boardings.AB_XITA
+
+
+

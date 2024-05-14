@@ -12,27 +12,30 @@ layout:
       description: >
         The table provides a snapshot of key demographic and economic indicators for the Bay Area, San Francisco, and 15 districts.  
         Density values are calculated by dividing the corresponding indicators by the square miles of each area.  
-        HH is the abbreviation for Households; POP is the abbreviation for Population; EMPRES is the abbreviation for Employed Residents.
-      file: 'content/landuse.md'
-
+        HH is the abbreviation for Households; Pop is the abbreviation for Population; EmpRes is the abbreviation for Employed Residents.
+      file: 'landuse.md'
+  hyperLink:
+    - type: text
+      height: 0.6
+      file: 'test.md'
   bar chart:
     - title: Land Use Plot
       type: vega
       description: 'The grouped bar chart displays four metrics - Households Density, Population Density, Employed Residents Density, and Employment Density - for 15 districts. Density values are calculated by dividing the corresponding indicators by the square miles of each area.'
-      config: content/landuse.vega.json
+      config: landuse.vega.json
   Land Use Map - Taz:
     - type: map
-      title: Land Use Map - Tza
-      description: The map displays all land use metrics for each TAZ. 
+      title: Land Use Map - TAZ
+      description: The map displays all land use metrics for each TAZ. To change display click on filter button and then choose alternate Fill Color.
       zoom: 11.6
       center:
           - -122.42
           - 37.77
-      height: 10
-      shapes: shapefiles/TAZ2454_clean.shp
+      height: 13
+      shapes: TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/landuse_density.csv
+          file: landuse_density.csv
           join: TAZ:SFTAZ
       display:
           fill:
@@ -63,24 +66,26 @@ layout:
   Land Use map-districts:
     - type: map
       title: Land Use Map - Districts
-      description: The map displays all land use metrics for each district.
+      description: The map displays all land use metrics for each district. To change display click on filter button and then choose alternate Fill Color.
       zoom: 11.6
       center:
           - -122.42
           - 37.77
-      height: 10
-      shapes: shapefiles/Dist_15_Dissolve.shp
+      height: 13
+      shapes: Dist_15_Dissolve.shp
+      
       datasets:
         district: 
-          file: data/landuse_district.csv
+          file: landuse_district.csv
           join: Dist15_DIS:Area
       display:
           fill:
               dataset: district
-              columnName: Employment Density
+              columnName: Households Density
+
               colorRamp:
-                  ramp: RdBu
-                  steps: 15
+                  ramp: Blues
+                  steps: 7
 
       tooltip:
         - district.Area

@@ -7,51 +7,113 @@ header:
 layout:
   row1:
     - type: text
-      title: 'SF Resident Trips Purpose Table by Time of the Day'
+      title: 'San Francisco Resident Trips Purpose Table by Time of the Day' #to be changed to SF
       description: 'Table showing trips by primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'content/purpose_tod.md'
+      file: 'purpose_tod.md'
 
-    - type: "bar"
-      title: "Trips by primary destination purpose and Time Of Day"
+  row2:
+    - type: "line"
+      title: "Bay Area Trips by Primary Destination Purpose and Time Of Day"
+      description: 'Graph showing trips by primary destination purpose statistics for 5 different times of the day'
       width: 2
       props:
-        dataset: "data/puporse_tod.csv"
+        dataset: "puporse_tod.csv"
         x: "TOD"
         stacked: true
-        columns: ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
+        columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
         xAxisName: 'Time of the Day'
         yAxisName: 'Count of tours'
 
-  row2:
+  row3:
     - type: text
-      title: 'SF Daily Trips Purpose Table by primary destination'
-      description: 'Table showing statistics for 15 districts'
-      file: 'content/purpose_dist_daily.md'
+      title: 'Bay Area Daily Trips Purpose Table by Primary Destination'
+      description: 'Table showing statistics for 15 districts trips by primary destination purpose statistics'
+      file: 'purpose_dist_daily.md'
 
+  row4:
     - type: 'bar'
-      title: 'Daily Trip Purpose plot'
-      # description: 'Purpose and their trips in 2 locations'
+      title: 'SF Daily Trip Purpose Plot'
+      description: 'Graph showing statistics for 12 districts trips by primary destination purpose statistics'
       height: 4
       width: 1
-      dataset: 'data/Purpose_daily.csv'
+      dataset: 'Purpose_daily.csv'
       stacked: true
       x: 'District'
-      columns: ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
+      columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
       xAxisName: 'Districts'
       yAxisName: 'District Counts'
 
   taz_map:
     - type: map
-      title: Daily Resident Travel Purpose for all TAZs
+      title: Daily Resident Travel Purpose for All TAZs
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: shapefiles/TAZ2454_clean.shp
+      shapes: TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_rpurpose.csv
+          file: taz_rpurpose.csv
+          join: TAZ:TAZs
+      display:
+          fill:
+            dataset: taz
+            columnName: Work
+            colorRamp:
+              ramp: Plasma
+              steps: 10
+
+      tooltip:
+        - taz.District
+        - taz.TAZs
+        - taz.Work
+        - taz.Grade School
+        - taz.High School
+        - taz.College
+        - taz.Workbased
+
+  taz_origin_destination_map:
+    - type: map
+      title: Daily Travel Purpose Map by Origin for ALL TAZs
+      zoom: 11
+      center:
+          - -122.42
+          - 37.77
+      height: 12
+      shapes: TAZ2454_clean.shp
+      datasets:
+        taz: 
+          file: taz_rpurpose_origin.csv
+          join: TAZ:TAZs
+      display:
+          fill:
+            dataset: taz
+            columnName: Work
+            colorRamp:
+              ramp: Plasma
+              steps: 10
+
+      tooltip:
+        - taz.District
+        - taz.TAZs
+        - taz.Work
+        - taz.Grade School
+        - taz.High School
+        - taz.College
+        - taz.Workbased
+
+    - type: map
+      title: Daily Travel Purpose Map by Destination for ALL TAZs
+      zoom: 11
+      center:
+          - -122.42
+          - 37.77
+      height: 12
+      shapes: TAZ2454_clean.shp
+      datasets:
+        taz: 
+          file: taz_rpurpose_destination.csv
           join: TAZ:TAZs
       display:
           fill:
@@ -78,10 +140,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: shapefiles/Dist_15_Dissolve.shp
+      shapes: Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: data/Purpose_daily_alt.csv
+          file: Purpose_daily_alt.csv
           join: Dist15_DIS:District Names
       display:
           fill:
@@ -102,37 +164,98 @@ layout:
         - district.Workbased
 # ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
 
+  taz_origin_destion_map:
+    - type: map
+      title: Daily Travel Purpose Map by Origin for 15 Districts
+      zoom: 11
+      center:
+          - -122.42
+          - 37.77
+      height: 12
+      shapes: Dist_15_Dissolve.shp
+      datasets:
+        district: 
+          file: district_rpurpose_origin.csv
+          join: Dist15_DIS:District
+      display:
+          fill:
+              dataset: district
+              columnName: Work
+              colorRamp:
+                  ramp: Plasma
+                  steps: 15
+
+      tooltip:
+        # - district.District No
+        - district.District
+        - district.District Names
+        - district.Work
+        - district.Grade School
+        - district.High School
+        - district.College
+        - district.Workbased
+        
+    - type: map
+      title: Daily Travel Purpose Map by Destination for 15 Districts
+      zoom: 11
+      center:
+          - -122.42
+          - 37.77
+      height: 12
+      shapes: Dist_15_Dissolve.shp
+      datasets:
+        district: 
+          file: district_rpurpose_destination.csv
+          join: Dist15_DIS:District
+      display:
+          fill:
+              dataset: district
+              columnName: Work
+              colorRamp:
+                  ramp: Plasma
+                  steps: 15
+
+      tooltip:
+        # - district.District No
+        - district.District
+        - district.District Names
+        - district.Work
+        - district.Grade School
+        - district.High School
+        - district.College
+        - district.Workbased
   row5:
     - type: text
       title: 'SF Resident Tour Purpose Table by Time of the Day'
       description: 'Table showing tours by tour primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'content/tour_purpose_tod.md'
-
-    - type: "bar"
+      file: 'tour_purpose_tod.md'
+  row6:
+    - type: "line"
       title: "Tours by primary destination purpose and Time Of Day"
       width: 2
       props:
-        dataset: "data/tours_tod.csv"
+        dataset: "tours_tod.csv"
         x: "TOD"
         stacked: true
-        columns: ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
+        columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
         xAxisName: 'Time of the Day'
         yAxisName: 'Count of tours'
 
-  row6:
+  row7:
     - type: text
-      title: 'SF Daily Tours Purpose Table by primary destination'
+      title: 'SF Daily Tours Purpose Table by Primary Destination'
       description: 'Table showing statistics for 15 districts'
-      file: 'content/tour_purpose_dist_daily.md'
+      file: 'tour_purpose_dist_daily.md'
 
+  row8:
     - type: 'bar'
       title: 'Daily Tour Purpose plot'
       # description: 'Purpose and their trips in 2 locations'
       height: 4
       width: 1
-      dataset: 'data/tour_purpose_daily.csv'
+      dataset: 'tour_purpose_daily.csv'
       stacked: true
       x: 'District'
-      columns: ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
+      columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
       xAxisName: 'Districts'
       yAxisName: 'District Counts'
