@@ -1,4 +1,1 @@
-scripts/input_files/*
-simwrapper/output_for_simwrapper/*
-data/*
-shapefiles/*
+scripts/__pycache__/*
