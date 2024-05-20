@@ -14,11 +14,11 @@ OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 SCRIPT_FOLDER = Path(config["folder_setting"]["SCRIPT_FOLDER"])
 
 NET_FILES = [
-    config["vmt_vht"]["AM_vmt_vht_file "],
-    config["vmt_vht"]["PM_vmt_vht_file "],
-    config["vmt_vht"]["MD_vmt_vht_file "],
-    config["vmt_vht"]["EV_vmt_vht_file "],
-    config["vmt_vht"]["EA_vmt_vht_file "],
+    config["vmt_vht"]["AM_vmt_vht_file"],
+    config["vmt_vht"]["PM_vmt_vht_file"],
+    config["vmt_vht"]["MD_vmt_vht_file"],
+    config["vmt_vht"]["EV_vmt_vht_file"],
+    config["vmt_vht"]["EA_vmt_vht_file"],
 ]
 script_path = os.path.join(SCRIPT_FOLDER, config["vmt_vht"]["NET2CSV"])
 
