@@ -1,35 +1,27 @@
 import numpy as np
 import pandas as pd
-import datetime,os,re,sys,subprocess
 from socket import gethostname
 import configparser
-
 from simpledbf import Dbf5 as dbf
 import datetime,os,re,sys,subprocess
 from tables import open_file
 from utilTools import readEqvFile, readCtlFile, modifyDistrictNameForMap,DataFrameToCustomHTML
-import tables
+from pathlib import Path
 
-# Set working and output directories from environment variables
-WORKING_FOLDER          =  'input/trip'
-OUTPUT_FOLDER           =  'output'
 
-# Retrieve the control file path from environment and read its contents
-# This script requires the following files from the control file: 
-# "tazdata.dbf", "modesumSimple3_RPM9.ctl", and "DIST15.eqv"
 
-CTL_FILE                = 'topsheet.ctl'
-
+CTL_FILE                = r'../topsheet.ctl'
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
+WORKING_FOLDER          =  Path(config['folder_setting']['WORKING_FOLDER'])
+OUTPUT_FOLDER           =  Path(config['folder_setting']['OUTPUT_FOLDER'])
 
-rp_hh                   = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_HH'])
-rp_person               = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_PERSON'])
-rp_tour                 = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_TOUR'])
-rp_trips                = os.path.join(WORKING_FOLDER, config['resident_purpose']['RP_DISAG_TRIPS'])
-eqv_file                = os.path.join(WORKING_FOLDER, config['resident_purpose']['eqv_file'])
-
-
+rp_hh                   = os.path.join(WORKING_FOLDER, 'daysim', 'abm_output1', config['resident_purpose']['RP_HH'])
+rp_person               = os.path.join(WORKING_FOLDER, 'daysim', 'abm_output1', config['resident_purpose']['RP_PERSON'])
+rp_tour                 = os.path.join(WORKING_FOLDER, 'daysim', 'abm_output1', config['resident_purpose']['RP_TOUR'])
+rp_trips                = os.path.join(WORKING_FOLDER, 'daysim', 'abm_output1', config['resident_purpose']['RP_DISAG_TRIPS'])
+dist_eqv                = os.path.join(WORKING_FOLDER, config['resident_purpose']['DIST_EQV'])
+area_eqv                = os.path.join(WORKING_FOLDER, config['resident_purpose']['AREA_EQV'])
 
 
 
@@ -48,8 +40,8 @@ class ResidentPurposes:
     def __init__(self, eqvfile):
         (self.distToName, self.distToTaz, self.tazToDist, _numdists ) = readEqvFile(eqvfile)
         self.purposesByTimeperiod = False
-        self.trip_file = os.path.join(WORKING_FOLDER, "trips.h5")
-        self.tour_file = os.path.join(WORKING_FOLDER, "tours.h5")
+        self.trip_file = os.path.join(WORKING_FOLDER,'daysim', 'abm_output1', "trips_temp.h5")
+        self.tour_file = os.path.join(WORKING_FOLDER,'daysim', 'abm_output1', "tours_temp.h5")
         tp_dict = { "Daily":None, "AM":None, "PM":None, "EV":None, "MD":None,"EA":None}
         self.purposes_tour = tp_dict.copy()
         self.purpose = { "district": {"otaz":tp_dict.copy(), "hhtaz": tp_dict.copy(), "dtaz": tp_dict.copy()}}
@@ -243,7 +235,7 @@ class ResidentPurposes:
         
 
  
-rp = ResidentPurposes(eqv_file)
+rp = ResidentPurposes(dist_eqv)
 for tazSource in ["otaz", "dtaz", "hhtaz"]:
     for mapType in ["district","taz"]:
         df = rp.getResidentPurposes(mapType,'Daily',tazSource)
@@ -255,7 +247,7 @@ for tazSource in ["otaz", "dtaz", "hhtaz"]:
         output_file = f'{mapType}_rpurpose_{tazSource[0]}.csv'
         df.to_csv(os.path.join(OUTPUT_FOLDER,output_file),index=False)
 
-
+rp = ResidentPurposes(dist_eqv)
 purpose_dict={}
 timeperiods = ['Daily','AM','MD','PM','EV','EA']
 for t in timeperiods:
@@ -273,6 +265,7 @@ sum_df = pd.DataFrame([sum_all_rows,sum_first_12_rows], index=['Bay Area', 'San 
 
 # Concatenate the new DataFrame with the original DataFrame
 df = pd.concat([sum_df, purpose_df1])
+df = df.fillna(0)
 df.index.name = 'Districts'
 df['All Purpose'] = df.apply(lambda row: sum(row),axis=1)
 column_order = [
@@ -285,6 +278,7 @@ df_dis = df[column_order].iloc[2:14].copy()
 df_dis.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_all.csv'))
 df = df.astype(int)
 df = df.reset_index()
+
 df2md = DataFrameToCustomHTML([0,1,14,15,16], [0])
 df2md.generate_html(df, os.path.join(OUTPUT_FOLDER,"purpose_dist_daily.md"))
 
@@ -338,3 +332,6 @@ tod_df.to_csv(os.path.join(OUTPUT_FOLDER,'purpose_tod_tour.csv'))
 tod_df = tod_df.reset_index()
 df2md = DataFrameToCustomHTML([], [0])
 df2md.generate_html(tod_df, os.path.join(OUTPUT_FOLDER,"purpose_tod_tour.md"))
+
+os.remove(os.path.join(WORKING_FOLDER,'daysim', 'abm_output1', "trips_temp.h5"))
+os.remove(os.path.join(WORKING_FOLDER,'daysim', 'abm_output1', "tours_temp.h5"))

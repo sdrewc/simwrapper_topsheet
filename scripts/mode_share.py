@@ -7,7 +7,7 @@ import os
 import subprocess
 import configparser
 import numpy as np
-from utilTools import readEqvFile, readCtlFile
+from utilTools import readEqvFile, readCtlFile, DataFrameToCustomHTML,modifyDistrictNameForMap
 
 
 
@@ -181,6 +181,34 @@ def extract_second_element(x):
         return x[1]
     return None
 
+def modeSumToModeShareSF(modesum):
+    """ modesum numbers -> percentages for SF
+    """
+    modeshare   = {}
+    for mode in modesum.keys():
+        modeshare[mode] = sum(modesum[mode][:12])  
+    tempSum = sum(modeshare.values())
+    for mode in modesum.keys():
+        modeshare[mode] = round(100 * modeshare[mode] / tempSum, 1)  
+    return modeshare
+
+
+
+def convert_mat_to_h5(directory, mat_file):
+    # Construct the full paths to the input and output files
+    input_file = f"{os.path.join(directory, mat_file)}.mat"
+    executable = os.path.join(directory, 'mat2h5.exe')
+    # Construct the command to run the conversion
+    command = [executable, input_file]
+
+    # Execute the command
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    # Check if the command was successful
+    if result.returncode == 0:
+        print(f"Successfully converted {mat_file}.mat to {mat_file}.h5")
+    else:
+        print(f"Failed to convert {mat_file}.mat: {result.stderr}")
 
 h5_files = [AM_h5_file, PM_h5_file, MD_h5_file, EV_h5_file, EA_h5_file]
 missing_h5_files = []
@@ -200,15 +228,9 @@ else:
         print(f"MAT files with prefix PERSONTRIPS missing: {missing_mat_files}")
     else:
         # Convert MAT files to h5 files using mat2h5.exe
-        for mat_file in mat_files:
-            # Set the name of the input MAT file
-            input_mat_file = mat_file
-            
-            # Set the name of the output H5 file
-            output_h5_file = os.path.splitext(mat_file)[0] + '.h5'
-            output_h5      = os.path.join(WORKING_FOLDER,output_h5_file)
-            # Run the mat2h5.exe file with the input and output filenames as arguments
-            subprocess.run([Convert_mat2h5, input_mat_file, output_h5])
+        mat_file_names = ['PERSONTRIPS_AM', 'PERSONTRIPS_EA', 'PERSONTRIPS_EV', 'PERSONTRIPS_MD', 'PERSONTRIPS_PM']
+        for mat_file in mat_file_names:
+            convert_mat_to_h5(WORKING_FOLDER, mat_file)
 
 
 ftables = {"ftable1": AM_h5_file,
@@ -251,8 +273,9 @@ t8 = t18 + t28 + t38 + t48 + t58
 t9 = t119 + t219 + t319 + t419 + t519
 t10 = t120 + t220 + t320 + t420 + t520
 
-distnames, distToTaz, tazToDist, numdists = readEqvFile(AREA_EQV)
+tablekeys = [i for i in range(1,61)]
 
+distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
 
 distnameToTaz = {}
 for i in range(1,numdists+1):
@@ -283,60 +306,6 @@ with open(os.path.join(WORKING_FOLDER, 'summit_file.sum'), 'w') as file:
             file.write('|'.join(map(str, row)) + '\n')
         file.write("\n")
 
-
-
-tablekeys = [i for i in range(1,61)]
-
-
-sumnums = readSummitSumFile(os.path.join(WORKING_FOLDER, 'summit_file.sum'), tablekeys, numdists)
-
-# Scale the summit numbers
-sumnums = scaleSummitNums(sumnums)
-
-# Define time periods of interest
-timePeriods = ['Daily','AM','MD','PM','EV','EA']
-
-# Compute mode shares for each time period
-res = {}
-tmp = {}
-modesum_ck={}
-percentage_dict = dict()
-for time in timePeriods:
-    # Convert summit data to mode sums and then to mode shares
-    # print(time)
-    modesum = summitToModeSumToOrFrom(sumnums, numdists, 'RPM9', True, True,timePeriod=time)
-    tmp[time] = modesum
-    res[time] = modeSumToModeShare(modesum)
-    modesum_ck[time] = modesum
-    total_mode_sum = dict()
-    for key in modesum.keys():
-        total_mode_sum[key]=np.sum(modesum[key][0:12])
-    sumt=0
-    for val in total_mode_sum.values():
-        sumt+=val
-    
-    percentage_dict[time] = {key: round((value / sumt) * 100,2) for key, value in total_mode_sum.items()}
-    # percentage_dict[time] = {key: value for key, value in total_mode_sum.items()}
-
-# Convert the mode shares to strings with a percent sign for printing to CSV
-# for time in res.keys():
-#     for key in res[time].keys():
-#         res[time][key] = [f"{i}%" for i in res[time][key]]
-
-# Define lists of places and transportation types of interest
-places = list(distnames.values())
-types = [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]
-
-df = pd.DataFrame(data=res).T
-df_second_element = df.apply(lambda x: x.map(extract_second_element))
-
-
-df_second_element = df_second_element.reset_index()
-
-df_second_element.to_csv(os.path.join(OUTPUT_FOLDER,'Mode_tod.csv'),index=False)
-
-distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
-
 sumnums = readSummitSumFile(f'summit_file.sum', tablekeys, numdists)
 
 # Scale the summit numbers
@@ -347,50 +316,41 @@ timePeriods = ['Daily','AM','MD','PM','EV','EA']
 
 # Compute mode shares for each time period
 res = {}
-tmp = {}
-modesum_ck={}
-percentage_dict = dict()
+sf = {}
 for time in timePeriods:
     # Convert summit data to mode sums and then to mode shares
     # print(time)
     modesum = summitToModeSumToOrFrom(sumnums, numdists, 'RPM9', True, False, timePeriod=time)
-    tmp[time] = modesum
     res[time] = modeSumToModeShare(modesum)
-    modesum_ck[time] = modesum
-    total_mode_sum = dict()
-    for key in modesum.keys():
-        total_mode_sum[key]=np.sum(modesum[key][0:12])
-    sumt=0
-    for val in total_mode_sum.values():
-        sumt+=val
-    
-    percentage_dict[time] = {key: round((value / sumt) * 100,2) for key, value in total_mode_sum.items()}
+    sf[time] = modeSumToModeShareSF(modesum)
+
+df = pd.DataFrame(sf).T
+df.index.name = 'TOD'
+df = df.reset_index()
+df2html = DataFrameToCustomHTML([], [0])
+df2html.generate_html(df, os.path.join(OUTPUT_FOLDER,'Mode_tod.md'), True)
+
+df.to_csv(os.path.join(OUTPUT_FOLDER,'Mode_tod.csv'), index=False)
+
+
 places = list(distnames.values())
 types = [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]
 
 df = pd.DataFrame(data=res['Daily'], columns=types, index=places)
 df.index.name = 'District'
 df = df.reset_index()
-df_alt = df.loc[:,['District','Auto','Transit','TNC','Bike','Pedestrian']]
+df_alt = df.loc[:,['District', MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]]
 df_alt.index.name = "District No"
-markdown_table = tabulate(df_alt, headers='keys', tablefmt='pipe').split('\n')
-markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
-markdown_table = '\n'.join(markdown_table)
-with open(os.path.join(OUTPUT_FOLDER,'Mode_dist_daily.md'), 'w') as f:
-    f.write(markdown_table)
 
+df_alt = df_alt.reset_index()
+df_alt['District No'] = df_alt['District No'] + 1
+df2html = DataFrameToCustomHTML([], [0,1])
+df2html.generate_html(df_alt, os.path.join(OUTPUT_FOLDER,'Mode_daily.md'), True)
 df_alt.to_csv(os.path.join(OUTPUT_FOLDER,"Mode_daily.csv"),index=False)
-
-df_alt.at[2, 'District'] = 'N.Beach/'
-df_alt.at[3, 'District'] = 'Western'
-df_alt.at[4, 'District'] = 'Mission/'
-df_alt.at[5, 'District'] = 'Noe/'
-df_alt.at[6, 'District'] = 'Marina/'
-df_alt.at[9, 'District'] = 'Outer'
-df_alt.at[10, 'District'] = 'Hill'
-
+df_alt = modifyDistrictNameForMap(df_alt, 'District')
 df_alt.to_csv(os.path.join(OUTPUT_FOLDER,"district_mode_tod.csv"),index=False)
+
+
 
 comb_arr=[]
 for j in range(1,numdists+1):
@@ -420,8 +380,6 @@ mode_taz['Taz'] = T_taz_df['Taz']
 
 mode_taz.to_csv(os.path.join(OUTPUT_FOLDER,'taz_mode.csv'),index=False)
 
-
-
 #--------------------------------------------------------------------------------------------------
 def modeShare_tp(final_df, ocode, dcode, place, tp):
     if tp != 'Daily':
@@ -434,6 +392,26 @@ def modeShare_tp(final_df, ocode, dcode, place, tp):
     bike = df[((df[ocode] == place) | (df[dcode] == place)) & (df['mode'].isin([2]))]['trexpfac'].sum()
     tnc = df[((df[ocode] == place) | (df[dcode] == place)) & (df['mode'].isin([9]))]['trexpfac'].sum()
     return [auto, transit, ped, bike, tnc]
+
+def modeShareSF_tp(final_df, ocode, dcode, places, tp):
+    # Filter the dataframe for the time period if it's not 'Daily'
+    if tp != 'Daily':
+        df = final_df[final_df['tp'] == tp]
+    else:
+        df = final_df
+
+    # Check if ocode or dcode is in the list of places
+    df = df[df[ocode].isin(places) | df[dcode].isin(places)]
+    
+    # Calculate sum of 'trexpfac' for different modes
+    auto = df[df['mode'].isin([3, 4, 5])]['trexpfac'].sum()
+    transit = df[df['mode'].isin([6])]['trexpfac'].sum()
+    ped = df[df['mode'].isin([1])]['trexpfac'].sum()
+    bike = df[df['mode'].isin([2])]['trexpfac'].sum()
+    tnc = df[df['mode'].isin([9])]['trexpfac'].sum()
+    
+    return [auto, transit, ped, bike, tnc]
+
 
 def get_mode_shares(place, mode_sums):
     relevant_rows = mode_sums[(mode_sums['otaz'] == place) | (mode_sums['dtaz'] == place)]
@@ -468,45 +446,18 @@ cols_to_drop = [col for col in merged_df.columns if col.endswith('_next')]
 merged_df.drop(cols_to_drop, axis=1, inplace=True)
 df_cleaned = df.drop(indices_to_delete)
 final_df = pd.concat([merged_df, df_cleaned], ignore_index=True)
-distnames, distToTaz, tazToDist, numdists = readEqvFile(AREA_EQV)
-
-final_df['o3code'] = final_df['otaz'].map(lambda x: tazToDist[x][0])
-final_df['d3code'] = final_df['dtaz'].map(lambda x: tazToDist[x][0])
 bins = [0, 180, 540, 780, 1080, 1440]  
 labels = ['EA', 'AM', 'MD', 'PM', 'EV']
 
 final_df['tp'] = pd.cut(final_df['deptm'], bins=bins, labels=labels, right=False)
 
-timePeriods = ['Daily',  'AM', 'MD', 'PM', 'EV', 'EA']
-sf = {}
-for tp in timePeriods:
-    tmp = [0] * 5
-    for pc in [1,2]:
-        percentage = modeShare_tp(final_df, 'o3code', 'd3code',pc, tp)
-        for i in range(len(tmp)):
-            tmp[i] += percentage[i]
-    tmp_sum = sum(tmp)
-    for j in range(len(tmp)):
-        tmp[j] = round(100 * tmp[j]/tmp_sum, 1)
-    sf[tp] = tmp
 
-df = pd.DataFrame(sf).T
-df.columns = ['Auto', 'Transit', 'TNC' , 'Bike','Pedestrian']
-df.index.name = 'TOD'
-markdown_table = tabulate(df, headers='keys', tablefmt='pipe').split('\n')
-markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
-markdown_table = '\n'.join(markdown_table)
-with open(f'Mode_tod_tab.md', 'w') as f:
-    f.write(markdown_table)
-df = df.reset_index()
-df.to_csv(os.path.join(OUTPUT_FOLDER,"Mode_tod_tab.csv"),index=False)
 
 distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
 final_df['o15code'] = final_df['otaz'].map(lambda x: tazToDist[x][0])
 final_df['d15code'] = final_df['dtaz'].map(lambda x: tazToDist[x][0])
 
-timePeriods = ['Daily', 'EA', 'AM', 'MD', 'PM', 'EV']
+timePeriods = ['Daily',  'AM', 'MD', 'PM', 'EV', 'EA']
 districts = {}
 
 for pc in distnames.keys():
@@ -520,24 +471,30 @@ df = pd.DataFrame(districts).T
 df.columns = ['Auto', 'Transit', 'Pedestrian', 'Bike', 'TNC']
 df.index.name = 'District NO'
 df['District'] = df.apply(lambda row: distnames[row.name] , axis=1)
-df = df.loc[:,['District','Auto','Transit','TNC','Bike','Pedestrian']]
-markdown_table = tabulate(df, headers='keys', tablefmt='pipe').split('\n')
-markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**' for header in markdown_table[0].split('|')[1:-1]) + ' |'
-markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
-markdown_table = '\n'.join(markdown_table)
+df = df.loc[:,['District','Auto','Transit','Pedestrian','Bike','TNC']]
 
-with open(f'Mode_tod_tab_district.md', 'w') as f:
-    f.write(markdown_table)
-df.to_csv(os.path.join(OUTPUT_FOLDER,"district_mode_tod_tab.csv"),index=False)
-df_alt = df
-df_alt.at[3, 'District'] = 'N.Beach/'
-df_alt.at[4, 'District'] = 'Western'
-df_alt.at[5, 'District'] = 'Mission/'
-df_alt.at[6, 'District'] = 'Noe/'
-df_alt.at[7, 'District'] = 'Marina/'
-df_alt.at[10, 'District'] = 'Outer'
-df_alt.at[11, 'District'] = 'Hill'
+df = df.reset_index()
+df2html = DataFrameToCustomHTML([], [0,1])
+df2html.generate_html(df, os.path.join(OUTPUT_FOLDER,'Mode_tod_tab_district.md'), True)
+df.to_csv(os.path.join(OUTPUT_FOLDER,'Mode_tod_tab_district.csv'),index=False)
+
+df = modifyDistrictNameForMap(df, 'District')
 df_alt.to_csv(os.path.join(OUTPUT_FOLDER,"district_mode_tod_tab_map.csv"),index=False)
+
+sf = {}
+for tp in timePeriods:
+    percentage = modeShareSF_tp(final_df, 'o15code', 'd15code',list(range(1,13)), tp)
+    tmp_sum = sum(percentage)
+    for j in range(len(percentage)):
+        percentage[j] = round(100 * percentage[j]/tmp_sum, 1)
+    sf[tp] = percentage
+df = pd.DataFrame(sf).T
+df.columns = ['Auto', 'Transit','Pedestrian' , 'Bike','TNC']
+df.index.name = 'TOD'
+df = df.reset_index()
+df2html = DataFrameToCustomHTML([], [0])
+df2html.generate_html(df, os.path.join(OUTPUT_FOLDER,'Mode_tod_tab.md'), True)
+df.to_csv(os.path.join(OUTPUT_FOLDER,'Mode_tod_tab.csv'),index=False)
 
 comb_arr=[]
 for j in range(1,numdists+1):

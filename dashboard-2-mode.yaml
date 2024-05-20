@@ -9,66 +9,66 @@ layout:
     - type: text
       title: 'SF Mode Share Table by Time of the Day (Data Source: Person Trips)'
       description: 'Table showing modeshare statistics for 5 different times of the day including Daily aggeragate. We consider origin or destination as SF'
-      file: 'Mode_tod.md'
+      file: 'data/Mode_tod.md'
 
     - type: "bar"
       title: "Mode Share by TOD"
       width: 2
       props:
-        dataset: "Mode_tod.csv"
-        x: "index"
+        dataset: "data/Mode_tod.csv"
+        x: "TOD"
         stacked: true
-        columns: ['Auto','Transit','TNC','Bike','Pedestrian']
+        columns: ['Auto','Transit','Pedestrian','Bike','TNC']
         xAxisName: 'Time of the Day'
         yAxisName: 'Percentage(%)'
   row1-tripList:
     - type: text
       title: 'SF Mode Share Table by Time of the Day (Data Source: Trip List)'
       description: 'Table showing modeshare statistics for 5 different times of the day including Daily aggeragate. We consider origin or destination as SF'
-      file: 'Mode_tod_tab.md'
+      file: 'data/Mode_tod_tab.md'
 
     - type: "bar"
       title: "Mode Share by TOD"
       width: 2
       props:
-        dataset: "Mode_tod_tab.csv"
+        dataset: "data/Mode_tod_tab.csv"
         x: "TOD"
         stacked: true
-        columns: ['Auto','Transit','TNC','Bike','Pedestrian']
+        columns: ['Auto','Transit','Pedestrian','Bike','TNC']
         xAxisName: 'Time of the Day'
         yAxisName: 'Percentage(%)'
   row2:
     - type: text
       title: 'Bay Area Daily Mode Share Table by Area (Data Source: Person Trips)'
       description: 'Table showing modeshare statistics for 15 districts'
-      file: 'Mode_dist_daily.md'
+      file: 'data/Mode_daily.md'
 
     - type: 'bar'
       title: 'Daily Mode Share plot'
       # description: 'Purpose and their trips in 2 locations'
       height: 4
       width: 1
-      dataset: 'Mode_daily.csv'
+      dataset: 'data/Mode_daily.csv'
       stacked: true
-      x: 'index'
-      columns: ['Auto','Transit','TNC','Bike','Pedestrian']
+      x: 'District'
+      columns: ['Auto','Transit','Pedestrian','Bike','TNC']
       xAxisName: 'Districts'
       yAxisName: 'Modes Share (%)'
   row2-tab:
     - type: text
       title: 'Bay Area Daily Mode Share Table by Area (Data Source: Trip List)'
       description: 'Table showing modeshare statistics for 15 districts'
-      file: 'Mode_tod_tab_district.md'
+      file: 'data/Mode_tod_tab_district.md'
 
     - type: 'bar'
       title: 'Daily Mode Share plot'
       # description: 'Purpose and their trips in 2 locations'
       height: 4
       width: 1
-      dataset: 'district_mode_tod_tab.csv'
+      dataset: 'data/Mode_tod_tab_district.csv'
       stacked: true
       x: 'District'
-      columns: ['Auto','Transit','TNC','Bike','Pedestrian']
+      columns: ['Auto','Transit','Pedestrian','Bike','TNC']
       xAxisName: 'Districts'
       yAxisName: 'Modes Share (%)'
 
@@ -80,10 +80,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: taz_mode.csv
+          file: data/taz_mode.csv
           join: TAZ:Taz
       display:
           fill:
@@ -109,10 +109,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: taz_mode_tab.csv
+          file: data/taz_mode_tab.csv
           join: TAZ:Taz
       display:
           fill:
@@ -138,11 +138,11 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 
-          file: district_mode_tod.csv
+          file: data/district_mode_tod.csv
           join: Dist15_DIS:District
       display:
           fill:
@@ -168,11 +168,11 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 
-          file: district_mode_tod_tab_map.csv
+          file: data/district_mode_tod_tab_map.csv
           join: Dist15_DIS:District
       display:
           fill:

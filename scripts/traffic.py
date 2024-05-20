@@ -1,98 +1,30 @@
-import numpy as np
 import pandas as pd
-import datetime,os,re,sys,subprocess
 from socket import gethostname
-
-from simpledbf import Dbf5 as dbf
-import datetime,os,re,sys,subprocess
-from tables import open_file
 import configparser
+from simpledbf import Dbf5 as dbf
+import os,sys,subprocess
+from utilTools import DataFrameToCustomHTML
+from pathlib import Path
 
 
 
-
-# Read input parameters from control file
-CTL_FILE                = os.environ.get('control_file')
+CTL_FILE                = r'../topsheet.ctl'
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER          =  os.environ.get('input_dir')
-OUTPUT_FOLDER           =  os.environ.get('output_dir')
-# Access the arguments
-daily_vols_dbf_path     = os.path.join(WORKING_FOLDER, config['traffic']['daily_vols_dbf'])
-am_vols_dbf_path        = os.path.join(WORKING_FOLDER, config['traffic']['am_vols_dbf'])
-pm_vols_dbf_path        = os.path.join(WORKING_FOLDER, config['traffic']['pm_vols_dbf'])
-necessary_scripts_for_vmt_folder    =  config['folder_setting']['necessary_scripts_for_vmt_folder']
-output_filename         = config['traffic']['Trffic_File_Name']
-def runtpp(scriptname, outputfile, env=None):
-    """ Runs the given tpp script if the given outputfile doesn't exist
-    """
-    try:
-        if (runAll):
-            raise Exception('runAll', 'runAll')
-        else:
-            os.stat(outputfile)
-    except:
-        # it doesn't exist, run it
-        hostname = gethostname()
-        fullenv = None
-        if env:
-            fullenv = os.environ
-            fullenv.update(env)
-        # dispatch it, no cube license
-        if (hostname == 'Mason' or hostname == 'D90V07K1-okforgetit'):
-            f = open('topsheet.tmp', 'w')
-            f.write("runtpp " + scriptname + "\n")
-            f.close()
-            scriptname = scriptname.replace('/', '\\')
-            dproc    = subprocess.Popen( "Y:/champ/util/bin/dispatch.bat topsheet.tmp ocean", env=fullenv) 
-            dret     = dproc.wait()
-        else:
-            dproc    = subprocess.Popen( "runtpp " + scriptname, env=fullenv)    
-            dret     = dproc.wait()
-        print("dret = ",dret)
-    return
-
-def readEqvFile(eqvfile):
-	""" Reads the given eqvfile and returns
-        distnames: distnum -> distname
-		distToTaz: distnum -> list of taznums
-		tazToDist: taznum  -> list of distnums
-		numdists:  just the number of districts
-	"""		
-	f = open(eqvfile, 'r')
-	eqvtxt = f.read()
-	f.close()
-
-	distline_re	= re.compile('DIST (\d+)=(\d+)( .+)?')
-	lines 		= eqvtxt.split("\n")
-	lineno 		= 0
-	distnames	= {}
-	distToTaz	= {}
-	tazToDist	= {} 
-	while (lineno < len(lines)):
-		m 	= distline_re.search(lines[lineno])
-		if (m != None):
-			# distnames[int(m.group(1))] = m.group(2)
-			dist= int(m.group(1))
-			taz = int(m.group(2))
-			if (dist not in distToTaz):
-				distToTaz[dist] = []              
-			distToTaz[dist].append(taz)
-			if (taz not in tazToDist):
-				tazToDist[taz] = []
-			tazToDist[taz].append(dist)
-			if (m.group(3) != None):
-				distnames[dist] = m.group(3).strip(' ')
-		lineno	= lineno + 1
-	numdists	= len(distnames)
-	return (distnames, distToTaz, tazToDist, numdists) 
+WORKING_FOLDER          =  Path(config['folder_setting']['WORKING_FOLDER'])
+OUTPUT_FOLDER           =  Path(config['folder_setting']['OUTPUT_FOLDER'])
+SCRIPT_FOLDER           =  Path(config['folder_setting']['SCRIPT_FOLDER'])
 
 
 #Traffic constants
-# SCRIPT_PATH             = sys.path[0] + "\\"
-HWY_CREATEDAILY_CMD     = os.path.join(necessary_scripts_for_vmt_folder, config['traffic']['Traffic_LOADEXPORT_CMD'])
-HWY_VOLFILES            = { 'AM':am_vols_dbf_path, 'MD':'md_vols.dbf', 'PM':pm_vols_dbf_path, 
-                            'EV':'ev_vols.dbf', 'EA':'ea_vols.dbf', 'Daily':daily_vols_dbf_path }
+SCRIPT_PATH             = sys.path[0] + "\\"
+HWY_CREATEDAILY_CMD     = os.path.join(SCRIPT_FOLDER, "create-daily.s")
+HWY_VOLFILES            = { 'AM':'am_vols.dbf', 
+                           'MD':'md_vols.dbf', 
+                           'PM':'pm_vols.dbf', 
+                            'EV':'ev_vols.dbf', 
+                            'EA':'ea_vols.dbf', 
+                            'Daily':'daily_vols.dbf' }
 HWY_ALLCOUNTYLINES      = 'All SF County Lines'
 HWY_ROWS                = [ HWY_ALLCOUNTYLINES, 'SM County Line', 'Bridges', ['Bay Bridge',1], ['GG Bridge',1], 
                             ['San Rafael Bridge (WB,EB)',1], ['San Mateo Bridge (WB,EB)',1], ['Dumbarton Bridge (WB,EB)',1],
@@ -247,20 +179,43 @@ HWY_SCREENS             = { \
     ],
 }   
 
+def runtpp(scriptname, outputfile, env=None):
+    """ Runs the given tpp script if the given outputfile doesn't exist
+    """
+    if not os.stat(outputfile):
+        # it doesn't exist, run it
+        hostname = gethostname()
+        fullenv = None
+        if env:
+            fullenv = os.environ
+            fullenv.update(env)
+        # dispatch it, no cube license
+        if (hostname == 'Mason' or hostname == 'D90V07K1-okforgetit'):
+            f = open('topsheet.tmp', 'w')
+            f.write("runtpp " + scriptname + "\n")
+            f.close()
+            scriptname = scriptname.replace('/', '\\')
+            dproc    = subprocess.Popen( "Y:/champ/util/bin/dispatch.bat topsheet.tmp ocean", env=fullenv) 
+            dret     = dproc.wait()
+        else:
+            dproc    = subprocess.Popen( "runtpp " + scriptname, env=fullenv)    
+            dret     = dproc.wait()
+        print("dret = ",dret)
+    return
 
 def getTrafficScreens(timePeriod='Daily'):
     """
     """
-    hwyfile     = HWY_VOLFILES[timePeriod]
-    # print(hwyfile)
+    hwyfile     = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
     runtpp(HWY_CREATEDAILY_CMD, hwyfile)    # create it, if needed
-    file_dbf = dbf(hwyfile)#to be changed later!!!!!!!!!!!
+    file_dbf = dbf(hwyfile)
     hwydbf      = file_dbf.to_dataframe()
     abToScreen  = {}
     traffic     = {}
-    vol         = 'TOTVOL'
     if (timePeriod == 'Daily'):
         vol     = 'DAILY_TOT'
+    else:
+        vol     = 'TOTVOL'
     # build a reverse mapping for what we want
     ## We can use numpy or direct for key,value in dict.itmes() instead of so many loops
     for key,value in HWY_SCREENS.items():
@@ -270,22 +225,17 @@ def getTrafficScreens(timePeriod='Daily'):
         #outbound
         for index in range(0,len(value[1]),2):
             abToScreen[str(value[1][index])+" "+str(value[1][index+1])] = [ key, 1 ]
-
-    # print(abToScreen)
-    # print(hwydbf)
     for i in range(len(hwydbf)):
         rec = hwydbf.loc[i]
         if (rec['AB'] in abToScreen):
             screen,inout = abToScreen[rec['AB']][0],abToScreen[rec['AB']][1]
-            if screen not in traffic: traffic[screen] = [ 0, 0 ]
-            # if (screen == 'SM County Line'):
-            #   print screen, inout, rec['AB'], int(rec[vol])
+            if screen not in traffic: traffic[screen] = [ 0, 0 ] #1st inbound, 2nd outbound
             traffic[screen][inout] = traffic[screen][inout] + rec[vol]
     # make them ints
     for screen in traffic:
         traffic[screen][0] = int(traffic[screen][0])
         traffic[screen][1] = int(traffic[screen][1])
-
+        
     # aggregate
     traffic[HWY_ALLCOUNTYLINES] = [ 0, 0]
     traffic[HWY_ALLCOUNTYLINES][0] = \
@@ -294,45 +244,111 @@ def getTrafficScreens(timePeriod='Daily'):
          traffic['SM County Line'][1] + traffic['Bay Bridge'][1] + traffic['GG Bridge'][1]
     return traffic
 
-def format_cols(x):
-    return re.sub(r'\([^)]*\)', '',x)
+time = ['AM','MD','PM','EV','EA']
+dow_df=pd.DataFrame()
+for t in time:
+    dict_t = getTrafficScreens(t)
+    df_t = pd.DataFrame(data=dict_t)
+    tra_pm = df_t.transpose().reset_index()
+    index_order = [11,1,10,9,3,2,0,4,8,7,6,5]
+    tra_pm = tra_pm.reindex(index_order,  axis=0)
+    tra_pm.columns = ['Lines',f'{t} In',f'{t} Out']
+    # print(tra_pm)
+    if t=='AM':
+        dow_df = tra_pm.copy()
+    else:
+        dow_df = pd.merge(dow_df,tra_pm)
+dow_df.index = dow_df['Lines']
+dow_df.drop('Lines',axis =1, inplace=True)
+even_columns = dow_df.iloc[:, ::2]
+even_sum = even_columns.sum(axis=1)
+odd_columns = dow_df.iloc[:, 1::2]
+odd_sum = odd_columns.sum(axis=1)
+dow_df['Total Indbound'] = even_sum
+dow_df['Total Outbound'] = odd_sum
+dow_df.reset_index(inplace=True)
+md_path = os.path.join(OUTPUT_FOLDER, 'traffic_dow.md')
+df2html = DataFrameToCustomHTML( [],[0])
+df2html.generate_html(dow_df, md_path)
 
-def getTrafficFiles(loc, time = ['Daily','AM','PM']):
+def trafficMaps(timePeriod = 'Daily'):
+    hwyfile     = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
+    file_dbf = dbf(hwyfile)
+    hwydbf      = file_dbf.to_dataframe()
+    if timePeriod!='Daily':
+        data = hwydbf[['AB','DA','SR2','SR3','COM','TRK','BUS','TNC','AUTOVOL','TOTVOL']]
+    else:
+        data = hwydbf[['AB','DAILY_DA', 'DAILY_SR2', 'DAILY_SR3','DAILY_COM', 'DAILY_TRK', 
+       'DAILY_BUS', 'DAILY_TNC', 'DAILY_AUTO', 'DAILY_TOT']]
+    csv_path = os.path.join(OUTPUT_FOLDER, 'traffic_map_'+timePeriod+'.csv')
+    data.to_csv(csv_path,index=False,header=['AB','DA','SR2','SR3','COM','TRK','BUS','TNC','AUTOVOL','TOTVOL'])
+
+trafficMaps()
+
+def getTypeTrafficScreens(timePeriod='Daily'):
     """
-    Write the traffic data into csv and markdown files
     """
-    for t in time:
-        file_name = f'{output_filename}_'+t
-        # print(file_name)
-        dict_screen = getTrafficScreens(t)
-        screen_df = pd.DataFrame(data=dict_screen)
-        traffic_df = screen_df.transpose().reset_index()
-        index_order = [10,9,1,8,7,6,5,0,4,2,3,11]
-        traffic_df = traffic_df.reindex(index_order,  axis=0)
-        traffic_df.columns = ['Lines','Inbound','Outbound']
-        csv_df = traffic_df.copy()
-        csv_df.drop(11,inplace=True)
-        csv_df['Inbound']=csv_df.apply(lambda x: "{:,}".format(x['Inbound']), axis=1)
-        csv_df['Outbound']=csv_df.apply(lambda x: "{:,}".format(x['Outbound']), axis=1)
-        csv_df['Lines']=csv_df['Lines'].apply(format_cols)
-        # traffic_df=traffic_df.sort_values(by='Outbound',ascending=False)
-        #CSV table
-        csv_df.to_csv(os.path.join(OUTPUT_FOLDER, file_name+'.csv'),sep='\t',index=False)
-        #Markdown table
-        markdown_table = csv_df.to_markdown(index=False).split('\n')
-        header_row = markdown_table[0]
-        header_row = '| ' + ' | '.join(f'**{header.strip()}**' for header in header_row.split('|')[1:-1]) + ' |'
-        markdown_table[0] = header_row
-        markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::',':')[1:-1]
-        markdown_table = '\n'.join(markdown_table)
+    hwyfile     = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
+    file_dbf = dbf(hwyfile)
+    hwydbf      = file_dbf.to_dataframe()
+    abToScreen  = {}
+    v_class=[]
+    volume = ['DAILY_DA','DAILY_SR2', 'DAILY_SR3', 'DAILY_TRK', 'DAILY_COM','DAILY_BUS', 'DAILY_TNC', 'DAILY_AUTO']
+    # build a reverse mapping for what we want
+    ## We can use numpy or direct for key,value in dict.itmes() instead of so many loops
+    for key,value in HWY_SCREENS.items():
+        #inbound
+        for index in range(0,len(value[0]),2):
+            abToScreen[str(value[0][index])+" "+str(value[0][index+1])] = [ key, 0 ]
+        #outbound
+        for index in range(0,len(value[1]),2):
+            abToScreen[str(value[1][index])+" "+str(value[1][index+1])] = [ key, 1 ]
+    for vol in volume:
+        traffic     = {}       
+        for i in range(len(hwydbf)):
+            rec = hwydbf.loc[i]
+            if (rec['AB'] in abToScreen):
+                screen,inout = abToScreen[rec['AB']][0],abToScreen[rec['AB']][1]
+                if screen not in traffic: traffic[screen] = [ 0, 0 ] #1st inbound, 2nd outbound
+                # if (screen == 'SM County Line'):
+                #   print screen, inout, rec['AB'], int(rec[vol])
+                traffic[screen][inout] = traffic[screen][inout] + rec[vol]
+        # make them ints
+        for screen in traffic:
+            traffic[screen][0] = int(traffic[screen][0])
+            traffic[screen][1] = int(traffic[screen][1])
 
-        # print(markdown_table)
-        
-        with open(os.path.join(OUTPUT_FOLDER, file_name+'.md'), 'w') as f:
-            f.write(markdown_table)
-            
-    return "Traffic summary files are written in " + loc
+        # aggregate
+        traffic[HWY_ALLCOUNTYLINES] = [ 0, 0]
+        traffic[HWY_ALLCOUNTYLINES][0] = \
+            traffic['SM County Line'][0] + traffic['Bay Bridge'][0] + traffic['GG Bridge'][0]
+        traffic[HWY_ALLCOUNTYLINES][1] = \
+            traffic['SM County Line'][1] + traffic['Bay Bridge'][1] + traffic['GG Bridge'][1]
+        v_class.append(traffic)
+    return v_class
 
+def lineFiles(dicts,line):
+    df1 = [pd.DataFrame(d) for d in dicts]
+    df2 = pd.concat(df1,ignore_index=True).T
+    mtables = df2.iloc[[1,9,10,11]]
+    inbound = mtables.loc[line,::2].T.reset_index(drop=True)
+    outbound = mtables.loc[line,1::2].T.reset_index(drop=True)
+    df = pd.concat([inbound,outbound],axis=1)
+    df.index = ['DA','SR2', 'SR3', 'TRK', 'COM','BUS', 'TNC', 'AUTO']
+    df.columns = ['Inbound','Outbound']
+    sum_row = df.iloc[0:7].sum()
+    # Convert the sum to a DataFrame and transpose it to make it a row
+    sum_row_df = pd.DataFrame([sum_row])
 
-if __name__ == '__main__':
-    getTrafficFiles(loc = OUTPUT_FOLDER, time = ['Daily','AM','PM'])
+    df = pd.concat([df, sum_row_df],ignore_index=True)
+    df.index = ['DA','SR2', 'SR3', 'TRK', 'COM','BUS', 'TNC', 'AUTO','TOTAL']
+    df.reset_index(drop=False,inplace=True)
+    df.columns = ['Class','Inbound','Outbound']
+    md_path = os.path.join(OUTPUT_FOLDER, 'traffic_'+line+'.md')
+    df2html = DataFrameToCustomHTML( [],[0])
+    df2html.generate_html(df, md_path)
+    
+dicts = getTypeTrafficScreens()
+majorLines = ['SM County Line', 'GG Bridge', 'Bay Bridge', 'All SF County Lines']
+for line in majorLines:
+    lineFiles(dicts,line)

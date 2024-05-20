@@ -9,7 +9,7 @@ layout:
     - type: text
       title: 'San Francisco Resident Trips Purpose Table by Time of the Day' #to be changed to SF
       description: 'Table showing trips by primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'purpose_tod.md'
+      file: 'data/purpose_tod.md'
 
   row2:
     - type: "line"
@@ -17,18 +17,17 @@ layout:
       description: 'Graph showing trips by primary destination purpose statistics for 5 different times of the day'
       width: 2
       props:
-        dataset: "puporse_tod.csv"
+        dataset: "data/purpose_tod.csv"
         x: "TOD"
-        stacked: true
         columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
         xAxisName: 'Time of the Day'
-        yAxisName: 'Count of tours'
+        yAxisName: 'Count of trips'
 
   row3:
     - type: text
       title: 'Bay Area Daily Trips Purpose Table by Primary Destination'
       description: 'Table showing statistics for 15 districts trips by primary destination purpose statistics'
-      file: 'purpose_dist_daily.md'
+      file: 'data/purpose_dist_daily.md'
 
   row4:
     - type: 'bar'
@@ -36,9 +35,9 @@ layout:
       description: 'Graph showing statistics for 12 districts trips by primary destination purpose statistics'
       height: 4
       width: 1
-      dataset: 'Purpose_daily.csv'
+      dataset: 'data/purpose_all.csv'
       stacked: true
-      x: 'District'
+      x: 'Districts'
       columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
       xAxisName: 'Districts'
       yAxisName: 'District Counts'
@@ -51,10 +50,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: taz_rpurpose.csv
+          file: data/taz_rpurpose_h.csv
           join: TAZ:TAZs
       display:
           fill:
@@ -81,10 +80,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: taz_rpurpose_origin.csv
+          file: data/taz_rpurpose_o.csv
           join: TAZ:TAZs
       display:
           fill:
@@ -110,10 +109,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: taz_rpurpose_destination.csv
+          file: data/taz_rpurpose_d.csv
           join: TAZ:TAZs
       display:
           fill:
@@ -140,11 +139,11 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: Purpose_daily_alt.csv
-          join: Dist15_DIS:District Names
+          file: data/district_rpurpose_h.csv
+          join: Dist15_DIS:District
       display:
           fill:
               dataset: district
@@ -172,10 +171,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: district_rpurpose_origin.csv
+          file: data/district_rpurpose_o.csv
           join: Dist15_DIS:District
       display:
           fill:
@@ -202,10 +201,10 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: district_rpurpose_destination.csv
+          file: data/district_rpurpose_d.csv
           join: Dist15_DIS:District
       display:
           fill:
@@ -228,15 +227,14 @@ layout:
     - type: text
       title: 'SF Resident Tour Purpose Table by Time of the Day'
       description: 'Table showing tours by tour primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'tour_purpose_tod.md'
+      file: 'data/purpose_tod_tour.md'
   row6:
     - type: "line"
       title: "Tours by primary destination purpose and Time Of Day"
       width: 2
       props:
-        dataset: "tours_tod.csv"
+        dataset: "data/purpose_tod_tour.csv"
         x: "TOD"
-        stacked: true
         columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
         xAxisName: 'Time of the Day'
         yAxisName: 'Count of tours'
@@ -245,7 +243,7 @@ layout:
     - type: text
       title: 'SF Daily Tours Purpose Table by Primary Destination'
       description: 'Table showing statistics for 15 districts'
-      file: 'tour_purpose_dist_daily.md'
+      file: 'data/purpose_all_tour.md'
 
   row8:
     - type: 'bar'
@@ -253,9 +251,8 @@ layout:
       # description: 'Purpose and their trips in 2 locations'
       height: 4
       width: 1
-      dataset: 'tour_purpose_daily.csv'
+      dataset: 'data/purpose_all_tour.csv'
       stacked: true
-      x: 'District'
+      x: 'district'
       columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
-      xAxisName: 'Districts'
       yAxisName: 'District Counts'

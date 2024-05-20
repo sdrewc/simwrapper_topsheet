@@ -1,56 +1,26 @@
 import datetime,os,re,sys,subprocess
-import xlrd,xlwt        # excel reader and writer
 import pandas as pd
 from simpledbf import Dbf5
-from tabulate import tabulate
-import csv
 import configparser
 from platform import node
 import pandas as pd
 from shapely.geometry import Point, LineString
 import geopandas as gpd
-import fiona
-import sys, os,shutil
+import sys, os
 import numpy as np
+from utilTools import DataFrameToCustomHTML
+from pathlib import Path
 
 
 
-
-# Read input parameters from control file
-CTL_FILE                = 'topsheet.CTL' #os.environ.get('control_file')
+CTL_FILE                = r'../topsheet.ctl'
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-
-INPUT_FOLDER          =  r'X:\Projects\SB532\s2_sb532' # os.environ.get('input_dir')
-WORKING_FOLDER           =  '.' # os.environ.get('output_dir')
-
-
-# Define the list of files to be copied
-files_to_copy = [
-    config['transit']['SFALLMSAAM_CSV'],
-    config['transit']['SFALLMSAPM_CSV'],
-    config['transit']['SFALLMSAEA_CSV'],
-    config['transit']['SFALLMSAMD_CSV'],
-    config['transit']['SFALLMSAEV_CSV'],
-    config['transit']['SFALLMSAAM_DBF'],
-    config['transit']['SFALLMSAPM_DBF'],
-    config['transit']['SFALLMSAMD_DBF'],
-    config['transit']['SFALLMSAEV_DBF'],
-    config['transit']['SFALLMSAEA_DBF'],
-    config['transit']['FREEFLOW_nodes_DBF'],
-    config['transit']['LINKEDMUNI_AM_DBF'],
-    config['transit']['LINKEDMUNI_PM_DBF'],
-    config['transit']['LINKEDMUNI_MD_DBF'],
-    config['transit']['LINKEDMUNI_EV_DBF'],
-    config['transit']['LINKEDMUNI_EA_DBF']
-]
+WORKING_FOLDER            =  Path(config['folder_setting']['WORKING_FOLDER'])
+OUTPUT_FOLDER           =  Path(config['folder_setting']['OUTPUT_FOLDER'])
 
 
-# Copy the files
-for file_name in files_to_copy:
-    source = os.path.join(INPUT_FOLDER, file_name)
-    destination = os.path.join(WORKING_FOLDER, file_name)
-    shutil.copy2(source, destination)  # copy2 preserves metadata
+
 AM_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAAM_CSV'])
 PM_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAPM_CSV'])
 EA_csv                  =  os.path.join(WORKING_FOLDER, config['transit']['SFALLMSAEA_CSV'])
@@ -218,6 +188,8 @@ def getTransitVolumes(system, df):
         return [0,0]
     prefixlen     = len(prefixes[0])
     tmp = df[df["NAME"].str.startswith(tuple(prefixes))]
+    if len(tmp) == 0:
+        return [0, 0]
     if len(sf) ==0 :
         outbound = tmp[tmp["A"].map(lambda x:sfNC.inSF(x))& ~ tmp["B"].map(lambda x:sfNC.inSF(x))]['AB_VOL'].sum()
         inbound = tmp[tmp["B"].map(lambda x:sfNC.inSF(x))& ~ tmp["A"].map(lambda x:sfNC.inSF(x))]['AB_VOL'].sum()
@@ -359,10 +331,6 @@ def get_total_transit(res_dict):
         for i, val in enumerate(v[TRN_XFER_LINKED]):
             transit_daily[TRN_XFER_LINKED][i] += val
     return transit_daily
-
-
-
-# Check if the SFALLMSA_* CSV files exist
 csv_files = [AM_csv ,PM_csv ,MD_csv ,EV_csv ,EA_csv ]
 missing_csv_files = []
 for csv_file in csv_files:
@@ -403,83 +371,45 @@ transit_ev = getTransitBoardings(EV,"EV")
 transit_ea = getTransitBoardings(EA,"EA")
 transit_md = getTransitBoardings(MD,"MD")
 
+
 res_dict = {"AM":transit_am, "EA":transit_ea,"EV":transit_ev,"MD":transit_md,"PM":transit_pm}
 
 output = {'Daily':get_total_transit(res_dict), "AM":transit_am, "PM": transit_pm}
-for timeperiod in ['Daily', "AM", "PM"]:
-    muni_boarding_types = [TRN_MUNI_GEARY, TRN_MUNI_VN, TRN_MUNI_MISSION, 
-                   TRN_MUNI_RAIL,TRN_MUNI_BUS, TRN_MUNI_TOTAL,TRN_XFER_LINKED]
-    muni_rows = [['Muni Boardings', 'San Francisco']]
-    for i in muni_boarding_types:
-        muni_rows.append([i]+[int(output[timeperiod][i][0])])
-    rate = muni_rows[-2][1]/muni_rows[-1][1]
-    # muni_rows.append([TRN_XFER_RATE, round(rate,2)])
-    rail_vol_rows = [['Rail Volumes', 'Inbound', 'Outbound']]
-    rail_vol_types  = [TRN_BART_TUBE, TRN_BART_SM, TRN_CALTRAIN_SM ]
-    for i in rail_vol_types:
-        row = [int(round(j)) for j in output[timeperiod][i]]
-        rail_vol_rows.append([i]+row)
-    rail_board_types  = [ TRN_BART, TRN_CALTRAIN ]
-    rail_boarding_rows = [['Rail Boardings', 'Downtown', 'San Francisco', 'Bay Area']]
-    for i in rail_board_types:
-        row = [int(round(j)) for j in output[timeperiod][i]]
-        rail_boarding_rows.append([i]+row)
-    bus_vol_types     = [  TRN_ACTRANSIT, TRN_GGT,TRN_SAMTRANS ]
-    bus_vol_rows = [['Bus Volumes', 'Inbound', 'Outbound']]
-    for i in bus_vol_types:
-        row = [int(round(j)) for j in output[timeperiod][i]]
-        bus_vol_rows.append([i]+row)
-    df_muni_ridership = pd.DataFrame(muni_rows[1:], columns=muni_rows[0]).set_index(muni_rows[0][0])
-    df_rail_boardings = pd.DataFrame(rail_boarding_rows[1:], columns=rail_boarding_rows[0]).set_index(rail_boarding_rows[0][0])
-    df_rail_volume = pd.DataFrame(rail_vol_rows[1:], columns=rail_vol_rows[0]).set_index(rail_vol_rows[0][0])
-    df_bus_volume = pd.DataFrame(bus_vol_rows[1:], columns=bus_vol_rows[0]).set_index(bus_vol_rows[0][0])
-
-
-    output_folder = WORKING_FOLDER
-    output_file_name = OUTPUT_FILENAME
-    formatted_df = df_muni_ridership.copy()
-    for col in formatted_df.columns:
-        if pd.api.types.is_numeric_dtype(formatted_df[col]):
-            formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
-    index_name = formatted_df.index.name.lower().replace(' ', '_')
-    filename = f'{output_file_name}_{index_name}_{timeperiod}.md'
-    markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
-    markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i > 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
-    alignment_row = markdown_table[1].split('|')[1:-1]
-    for i, cell in enumerate(alignment_row):
-        if i > 0:  # Skip the first column (header)
-            alignment_row[i] = "---:"
-    markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
-    markdown_table = '\n'.join(markdown_table)
-    new_row_md = '| ' + ' | '.join(str(val) for val in [TRN_XFER_RATE, round(rate,2)]) + ' |'
-    markdown_table += '\n' + new_row_md
-
-    with open(f'{output_folder}/{filename}', 'w') as f:
-        f.write(markdown_table)
-    for i, df in enumerate([df_rail_boardings, df_rail_volume, df_bus_volume]):
-        index_name = df.index.name.lower().replace(' ', '_')
-        filename = f'{output_file_name}_{index_name}_{timeperiod}.md'
-        formatted_df = df.copy()
-        for col in formatted_df.columns:
-            if pd.api.types.is_numeric_dtype(formatted_df[col]):
-                formatted_df[col] = formatted_df[col].apply(lambda x: f"{x:,.0f}")
-        markdown_table = tabulate(formatted_df, headers='keys', tablefmt='pipe').split('\n')
-        markdown_table[0] = '| ' + ' | '.join(f'**{header.strip()}**{"&nbsp;&nbsp;" if i >= 0 else ""}' for i, header in enumerate(markdown_table[0].split('|')[1:-1])) + ' |'
-        # markdown_table[1] = markdown_table[1].replace('|', ':|:').replace('::', ':')[1:-1]
-        alignment_row = markdown_table[1].split('|')[1:-1]
-        for i, cell in enumerate(alignment_row):
-            if i > 0:  # Skip the first column (header)
-                alignment_row[i] = "---:"
-        markdown_table[1] = '|' + '|'.join(alignment_row) + '|'
-        markdown_table = '\n'.join(markdown_table)
-        with open(f'{output_folder}/{filename}', 'w') as f:
-            f.write(markdown_table)
-
-
-
-
-
-
+timeperiod = 'Daily'
+muni_boarding_types = [TRN_MUNI_GEARY, TRN_MUNI_VN, TRN_MUNI_MISSION, 
+                TRN_MUNI_RAIL,TRN_MUNI_BUS, TRN_MUNI_TOTAL,TRN_XFER_LINKED]
+muni_rows = [['Muni Boardings', 'San Francisco']]
+for i in muni_boarding_types:
+    muni_rows.append([i]+[int(output[timeperiod][i][0])])
+rate = muni_rows[-2][1]/muni_rows[-1][1]
+rail_vol_rows = [['Rail Volumes', 'Inbound', 'Outbound']]
+rail_vol_types  = [TRN_BART_TUBE, TRN_BART_SM, TRN_CALTRAIN_SM ]
+for i in rail_vol_types:
+    row = [int(round(j)) for j in output[timeperiod][i]]
+    rail_vol_rows.append([i]+row)
+rail_board_types  = [ TRN_BART, TRN_CALTRAIN ]
+rail_boarding_rows = [['Rail Boardings', 'Downtown', 'San Francisco', 'Bay Area']]
+for i in rail_board_types:
+    row = [int(round(j)) for j in output[timeperiod][i]]
+    rail_boarding_rows.append([i]+row)
+bus_vol_types     = [  TRN_ACTRANSIT, TRN_GGT,TRN_SAMTRANS ]
+bus_vol_rows = [['Bus Volumes', 'Inbound', 'Outbound']]
+for i in bus_vol_types:
+    row = [int(round(j)) for j in output[timeperiod][i]]
+    bus_vol_rows.append([i]+row)
+df_muni_ridership = pd.DataFrame(muni_rows[1:], columns=muni_rows[0]).set_index(muni_rows[0][0])
+df_muni_ridership['San Francisco'] = df_muni_ridership['San Francisco'].apply(lambda x: f"{x:,}")
+df_muni_ridership.loc[TRN_XFER_RATE] = f'{round(rate,2)}'
+df_rail_boardings = pd.DataFrame(rail_boarding_rows[1:], columns=rail_boarding_rows[0]).set_index(rail_boarding_rows[0][0])
+df_rail_volume = pd.DataFrame(rail_vol_rows[1:], columns=rail_vol_rows[0]).set_index(rail_vol_rows[0][0])
+df_bus_volume = pd.DataFrame(bus_vol_rows[1:], columns=bus_vol_rows[0]).set_index(bus_vol_rows[0][0])
+for df in [df_muni_ridership, df_rail_boardings, df_rail_volume, df_bus_volume]:
+    index_name = df.index.name.lower().replace(' ', '_')
+    df = df.reset_index()
+    filename = f'Transit_{index_name}_{timeperiod}.md'
+    md_path = os.path.join(OUTPUT_FOLDER, filename)
+    df2html = DataFrameToCustomHTML( [],[0])
+    df2html.generate_html(df, md_path)
 
 class SimwrapperMapConstructor():
     def __init__(self, link_data_path, node_data_path, bus_output, rail_output, reg_output):
@@ -630,17 +560,17 @@ class MapDataConstructor():
         return df
 
 link_data_path = AM_csv
-node_data_path = 'cubenet_validate_nodes.csv'
-bus_output = 'bus.shp'
-rail_output = 'rail.shp'
-reg_output = 'reg.shp'
+node_data_path = os.path.join(WORKING_FOLDER,'cubenet_validate_nodes.csv')
+bus_output = os.path.join(OUTPUT_FOLDER,'bus.shp')
+rail_output = os.path.join(OUTPUT_FOLDER,'rail.shp')
+reg_output = os.path.join(OUTPUT_FOLDER,'reg.shp')
 
 mapConstructor = SimwrapperMapConstructor(link_data_path, node_data_path, bus_output, rail_output, reg_output)
 mapConstructor.build_maps()
 
 am_datapath = AM_csv
 pm_datapath = PM_csv
-am_output = "reg_am.csv"
-pm_output = "reg_pm.csv"
+am_output = os.path.join(OUTPUT_FOLDER,"reg_am.csv")
+pm_output = os.path.join(OUTPUT_FOLDER,"reg_pm.csv")
 dataConstructor = MapDataConstructor(am_datapath, pm_datapath, am_output, pm_output)
 dataConstructor.create_data()

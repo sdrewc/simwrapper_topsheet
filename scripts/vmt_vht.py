@@ -1,32 +1,44 @@
 import pandas as pd
-from tabulate import tabulate
 import datetime,os,re,sys,subprocess
 from socket         import gethostname
 import configparser
+from utilTools import DataFrameToCustomHTML
+from pathlib import Path
 
 
-
-
-# Read input parameters from control file
-CTL_FILE                            = os.environ.get('control_file')
+# Read parameters from control file
+CTL_FILE                = r'../topsheet.ctl'
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER                      =  os.environ.get('input_dir')
-OUTPUT_FOLDER                       =  os.environ.get('output_dir')
+WORKING_FOLDER          =  Path(config['folder_setting']['WORKING_FOLDER'])
+OUTPUT_FOLDER           =  Path(config['folder_setting']['OUTPUT_FOLDER'])
+SCRIPT_FOLDER           =  Path(config['folder_setting']['SCRIPT_FOLDER'])
 
+net_files = ['LOADAM_FINAL', 'LOADEA_FINAL', 'LOADEV_FINAL', 'LOADMD_FINAL', 'LOADPM_FINAL']
+script_path = os.path.join(SCRIPT_FOLDER,"NETtoCSV_TNC.s")
 
+# Function to run the Cube Voyager script for a given NET file
+def run_cube_script(directory, script_path, net_file):
+    # Environment variable setup
+    env = os.environ.copy()
+    env['CUBENET'] = os.path.join(directory, net_file)
 
+    command = f'runtpp "{script_path}"'
 
-# Access the arguments
-final_file_paths = {
-    'LOADAM_FINAL.txt': os.path.join(WORKING_FOLDER ,config['vmt_vht']['AM_vmt_vht_file']),
-    'LOADPM_FINAL.txt': os.path.join(WORKING_FOLDER ,config['vmt_vht']['PM_vmt_vht_file']),
-    'LOADMD_FINAL.txt': os.path.join(WORKING_FOLDER ,config['vmt_vht']['MD_vmt_vht_file']),
-    'LOADEV_FINAL.txt': os.path.join(WORKING_FOLDER ,config['vmt_vht']['EV_vmt_vht_file']),
-    'LOADEA_FINAL.txt': os.path.join(WORKING_FOLDER ,config['vmt_vht']['EA_vmt_vht_file'])
-}
+    # Execute the command
+    result = subprocess.run(command, shell=True, env=env, capture_output=True, text=True)
 
-Output_filename                     = config['vmt_vht']['vmt_vht_output_file_name']
+    # Check if the command was successful
+    if result.returncode == 0:
+        print(f'Successfully processed {net_file}')
+    else:
+        print(f'Failed to process {net_file}: {result.stderr}')
+
+# Process each file
+for file in net_files:
+    if not os.path.exists(os.path.join(WORKING_FOLDER, file + '.csv')):
+        run_cube_script(WORKING_FOLDER, script_path, file)
+
 VMT_VMT                             = 'VMT'
 VMT_VHT                             = 'VHT'
 VMT_VMTOVERVHT                      = 'VMT/VHT'
@@ -45,8 +57,8 @@ def getVmtRaw( timePeriod):
         return daily_arr  
     
     time_factors = {"AM": 0.44, "MD": 0.18, "PM": 0.37, "EV": 0.22, "EA": 0.58}
-    file = "LOAD" + timePeriod + "_FINAL.csv"
-    df = pd.read_csv(file)
+    file = os.path.join(WORKING_FOLDER, "LOAD" + timePeriod + "_FINAL.csv")
+    df = pd.read_csv(file, on_bad_lines='skip')
     df = df.loc[df['FT'] != 6]
     peakHourFactor = time_factors.get(timePeriod)
     df.loc[df['SPEED'] == 0, 'time_freeflow'] = 0
@@ -98,13 +110,11 @@ def dictToMD(res,res_index, index_name,  index_list, output_file):
     df = pd.DataFrame(data = formatted_data,
                    index = index_list)
     df = df.T
-    df['TOD'] = df.index
-    df[index_name] = df.index
-    df = df[[index_name]+[col for col in df if col != index_name]]
-    bold_headers = ["<b>" + col + "</b>" for col in df.columns]
-    md_table = tabulate(df, headers=bold_headers,showindex=False, tablefmt='pipe')
-    with open(f'{output_file}.md', 'w') as f:
-        f.write(md_table)
+    df.index.name = 'TOD'
+    df = df.reset_index()
+    md_path = os.path.join(OUTPUT_FOLDER, f'{output_file}.md')
+    df2html = DataFrameToCustomHTML( [],[0])
+    df2html.generate_html(df, md_path)
 
 
 
@@ -112,7 +122,8 @@ def dictToMD(res,res_index, index_name,  index_list, output_file):
 def getVC(region,output_file, index_name):
     res = {'Drive Alone':[],'Shared Ride 2':[],'Shared Ride 3+':[], 'Trucks':[], 'Commercial Vehicles':[], 'TNC':[]}
     for file in ['LOADAM_FINAL.csv','LOADMD_FINAL.csv','LOADPM_FINAL.csv','LOADEV_FINAL.csv','LOADEA_FINAL.csv']:
-        df = pd.read_csv(file)
+        csv_file = os.path.join(WORKING_FOLDER, file)
+        df = pd.read_csv(csv_file, on_bad_lines='skip')
         df = df.loc[df['FT'] != 6]
         if region == 'sf':
             df = df.loc[df['MTYPE'] == 'SF']
@@ -136,7 +147,8 @@ def getVC(region,output_file, index_name):
         df[column] = round(df[column] / class_sums[column],4)
     df_melt = df.reset_index().melt(id_vars='index', var_name='Time', value_name='Percentage')
     df_melt.columns = ['Category', 'Time', 'Percentage']
-    df_melt.to_csv(f'{output_file}.csv',index=False)
+    csv_path = os.path.join(OUTPUT_FOLDER, f'{output_file}.csv')
+    df_melt.to_csv(csv_path,index=False)
     for key, values in res.items():
         tmp = []
         for value in values:
@@ -146,17 +158,14 @@ def getVC(region,output_file, index_name):
     df = pd.DataFrame(data = res,
            index = ['AM','MD','PM', 'EV', 'EA'])
     df = df.T
-    df['TOD'] = df.index
-    df[index_name] = df.index
-    df = df[[index_name]+[col for col in df if col != index_name]]
-    bold_headers = ["<b>" + col + "</b>" for col in df.columns]
-    md_table = tabulate(df, headers=bold_headers,showindex=False, tablefmt='pipe')
+    df.index.name = 'TOD'
+    df = df.reset_index()
+    md_path = os.path.join(OUTPUT_FOLDER, f'{output_file}.md')
+    df2html = DataFrameToCustomHTML( [],[0])
+    df2html.generate_html(df, md_path)
 
-    with open(f'{output_file}.md', 'w') as f:
-        f.write(md_table)
 
 res = {'Daily':getVmt(),'AM':getVmt('AM'),'PM':getVmt("PM"), 'MD':getVmt('MD'), 'EV': getVmt('EV'), 'EA': getVmt('EA')}
-
 
 timeperiod = 'Daily'
 formatted_data = {}
@@ -166,19 +175,26 @@ for key, value in res[timeperiod].items():
     else:
         formatted_data[key] = tuple(format_with_commas(x) for x in value)
 df = pd.DataFrame(data = formatted_data,
-               index = ['SF','Rest of Bay Area','Bay Area'])
+            index = ['SF','Rest of Bay Area','Bay Area'])
 
 df = df.T
-
-df['Geography'] = df.index
-df = df[['Geography'] + [col for col in df if col != 'Geography']]
-df.columns = ['Geography', 'SF', 'Rest of Bay Area   ', 'Bay Area']
-bold_headers = ["<b>" + col + "</b>" for col in df.columns]
-
-md_table = tabulate(df, headers=bold_headers,showindex=False, tablefmt='pipe')
-with open(f'vmt_{timeperiod}.md', 'w') as f:
-    f.write(md_table)
-
+df.index.name = 'Geography'
+df = df.reset_index()
+df2html = DataFrameToCustomHTML( [],[0])
+md_path = os.path.join(OUTPUT_FOLDER, 'vmt_Daily.md')
+df2html.generate_html(df, md_path)
+formatted_data = {'VMT':[],'VHT':[],'Speed':[],'Lost VH (vs freeflow)':[]}
+for tp in ['AM','MD','PM', 'EV', 'EA']:
+    for key, value in res[tp].items():
+        if key == "Speed":
+            formatted_data[key].append(round(value[0], 1))
+        else:
+            formatted_data[key].append(format_with_commas(round(value[0])))
+df = pd.DataFrame(data = formatted_data,
+                index = ['AM','MD','PM', 'EV', 'EA'])
+df = df.T
+df.index.name = 'TOD'
+df = df.reset_index()
 dictToMD(res, 0, 'TOD', ['AM','MD','PM', 'EV', 'EA'], 'vmt_sf' )
 dictToMD(res, 1, 'TOD', ['AM','MD','PM', 'EV', 'EA'], 'vmt_nonsf' )
 dictToMD(res, 2, 'TOD', ['AM','MD','PM', 'EV', 'EA'], 'vmt_ba' )
