@@ -15,7 +15,7 @@ LU_CLEAN_FILE                    = TAZ2454.dbf
 LU_CTL_FILE                      = modesumSimple3_RPM9.ctl
 DIST_EQV                         = DIST15.eqv
 AREA_EQV                         = DISTSIMPLE3.eqv
-LandUse_output_file_name         = landuse
+
 
 
 #part2 Mode share table
@@ -38,20 +38,20 @@ EA_mat_file                      =  PERSONTRIPS_EA.MAT
 MD_mat_file                      =  PERSONTRIPS_MD.MAT
 Convert_mat2h5                   =  mat2h5.exe
 RP_DISAG_TRIPS                   = _trip_2.dat
-Modeshare_output_file_name       = Mode_share
+
 
 #part3 VMT_VHT table
 
 [vmt_vht]
 
 VMT_LOADEXPORT_CMD               = create-daily.s
-VMT_GAWK_SCRIPT                  = vmt_vht_summary.awk
-AM_vmt_vht_file                  = LOADAM_FINAL.txt
-PM_vmt_vht_file                  = LOADPM_FINAL.txt
-MD_vmt_vht_file                  = LOADMD_FINAL.txt
-EV_vmt_vht_file                  = LOADEV_FINAL.txt
-EA_vmt_vht_file                  = LOADEA_FINAL.txt
-vmt_vht_output_file_name         = VMT_VHT
+NET2CSV                          = NETtoCSV_TNC.s
+AM_vmt_vht_file                  = LOADAM_FINAL
+PM_vmt_vht_file                  = LOADPM_FINAL
+MD_vmt_vht_file                  = LOADMD_FINAL
+EV_vmt_vht_file                  = LOADEV_FINAL
+EA_vmt_vht_file                  = LOADEA_FINAL
+
 
 #part4 Transit
 
@@ -72,7 +72,8 @@ LINKEDMUNI_PM_DBF                = LINKEDMUNI_PM.DBF
 LINKEDMUNI_MD_DBF                = LINKEDMUNI_MD.DBF
 LINKEDMUNI_EV_DBF                = LINKEDMUNI_EV.DBF
 LINKEDMUNI_EA_DBF                = LINKEDMUNI_EA.DBF
-Transit_File_Name                = Transit
+VALIDATE_CSV                     = cubenet_validate_nodes.csv
+
 
 #part 5 Traffic
 
@@ -80,8 +81,10 @@ Transit_File_Name                = Transit
 daily_vols_dbf                   = daily_vols.dbf
 am_vols_dbf                      = am_vols.dbf
 pm_vols_dbf                      = pm_vols.dbf
+md_vols_dbf                      = md_vols.dbf
+ev_vols_dbf                      = ev_vols.dbf
+ea_vols_dbf                      = ea_vols.dbf
 Traffic_LOADEXPORT_CMD           = create-daily.s
-Trffic_File_Name                 = Traffic
 
 # Part 6 Resident Purpose
 
@@ -92,6 +95,5 @@ RP_HH                            = _household_2.dat
 RP_PERSON                        = _person_2.dat
 RP_TOUR                          = _tour_2.dat
 RP_DISAG_TRIPS                   = _trip_2.dat
-trips_file                       = trips.h5
 DIST_EQV                         = DIST15.eqv
 AREA_EQV                         = DISTSIMPLE3.eqv
