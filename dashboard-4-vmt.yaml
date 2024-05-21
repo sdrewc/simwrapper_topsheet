@@ -9,55 +9,55 @@ layout:
       width: 160
       title: "Daily Summary Statistics of Vehicle Mobility"
       description: The table presents a comprehensive comparison of vehicle mobility metrics across different geographical regions - San Francisco (SF),the rest of the Bay Area, and the Bay Area as a whole. Metrics include Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
-      file: 'vmt_Daily.md'
+      file: 'data/vmt_Daily.md'
   
   table1:
     - type: text
       width: 40
       title: 'Summary Statistics Across Different Times of Day ---- San Francisco'
       description: This table delineates key vehicle mobility parameters across different times of day in San Francisco, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH). 
-      file: 'vmt_sf.md'
+      file: 'data/vmt_sf.md'
     - type: text
       width: 40
       title: 'Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco'
       description: "The table outlines a comprehensive summary of different vehicle class statistics in San Francisco across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
-      file: 'vmt_vc_sf.md'
+      file: 'data/vmt_vc_sf.md'
 
   barplot1:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco
-      config: vc_sf.vega.json
+      config: data/vc_sf.vega.json
 
   table2:
     - type: text
       width: 40
       title: 'Summary Statistics Across Different Times of Day ---- Rest of Bay Area'
       description: This table delineates key vehicle mobility parameters across different times of day in the rest of Bay Area, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
-      file: 'vmt_nonsf.md'
+      file: 'data/vmt_nonsf.md'
     - type: text
       width: 40
       title: 'Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Rest of Bay Area'
       description:  "The table outlines a comprehensive summary of different vehicle class statistics in the rest of Bay Area across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
-      file: 'vmt_vc_nonsf.md'
+      file: 'data/vmt_vc_nonsf.md'
 
   barplot2:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Rest of Bay Area
-      config: vc_nonsf.vega.json
+      config: data/vc_nonsf.vega.json
 
   table3:
     - type: text
       width: 40
       title: 'Summary Statistics Across Different Times of Day ---- Bay Area'
       description: This table delineates key vehicle mobility parameters across different times of day in Bay Area, categorized as Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The parameters consist of Vehicle Miles Traveled (VMT), Vehicle Hours Traveled (VHT), average speed, and lost vehicle hours (Lost VH).
-      file: 'vmt_ba.md'
+      file: 'data/vmt_ba.md'
     - type: text
       width: 40
       title: 'Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Bay Area'
       description:  "The table outlines a comprehensive summary of different vehicle class statistics in Bay Area across various periods of the day: Morning (AM), Midday (MD), Afternoon (PM), Evening (EV), and Early Morning (EA). The vehicle classes incorporated include 'Drive Alone', 'Shared Ride 2', 'Shared Ride 3+', 'Trucks', 'Commercial Vehicles', and 'Transport Network Companies (TNC)'."
-      file: 'vmt_vc_ba.md'
+      file: 'data/vmt_vc_ba.md'
 
   barplot3:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Bay Area
-      config: vc_ba.vega.json
+      config: data/vc_ba.vega.json

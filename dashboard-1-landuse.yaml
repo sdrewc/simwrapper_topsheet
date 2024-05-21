@@ -13,16 +13,12 @@ layout:
         The table provides a snapshot of key demographic and economic indicators for the Bay Area, San Francisco, and 15 districts.  
         Density values are calculated by dividing the corresponding indicators by the square miles of each area.  
         HH is the abbreviation for Households; Pop is the abbreviation for Population; EmpRes is the abbreviation for Employed Residents.
-      file: 'landuse.md'
-  hyperLink:
-    - type: text
-      height: 0.6
-      file: 'test.md'
+      file: data/landuse.md
   bar chart:
     - title: Land Use Plot
       type: vega
       description: 'The grouped bar chart displays four metrics - Households Density, Population Density, Employed Residents Density, and Employment Density - for 15 districts. Density values are calculated by dividing the corresponding indicators by the square miles of each area.'
-      config: landuse.vega.json
+      config: data/landuse.vega.json
   Land Use Map - Taz:
     - type: map
       title: Land Use Map - TAZ
@@ -32,15 +28,15 @@ layout:
           - -122.42
           - 37.77
       height: 13
-      shapes: TAZ2454_clean.shp
+      shapes: geo/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: landuse_density.csv
+          file: data/landuse_density.csv
           join: TAZ:SFTAZ
       display:
           fill:
             dataset: taz
-            columnName: HH_DENSITY
+            columnName: Households Density
             colorRamp:
               ramp: Plasma
               steps: 10
@@ -48,20 +44,14 @@ layout:
       tooltip:
         - taz.DISTRICT_NAME
         - taz.SFTAZ
-        - taz.HHLDS
-        - taz.POP
-        - taz.EMPRES
-        - taz.CIE
-        - taz.MED
-        - taz.MIPS
-        - taz.PDR
-        - taz.RETAIL
-        - taz.VISITOR
-        - taz.TOTALEMP
-        - taz.HH_DENSITY
-        - taz.POP_DENSITY
-        - taz.EMPRES_DENSITY
-        - taz.TOTALEMP_DENSITY
+        - taz.Employment Density
+        - taz.Population Density
+        - taz.Employed Residents Density
+        - taz.Households Density
+        - taz.Employment Value
+        - taz.Population Value
+        - taz.Employed Residents Value
+        - taz.Households Value
 
   Land Use map-districts:
     - type: map
@@ -72,12 +62,12 @@ layout:
           - -122.42
           - 37.77
       height: 13
-      shapes: Dist_15_Dissolve.shp
+      shapes: geo/Dist_15_Dissolve.shp
       
       datasets:
         district: 
-          file: landuse_district.csv
-          join: Dist15_DIS:Area
+          file: data/landuse_district.csv
+          join: Dist15_DIS:DISTRICT_NAME
       display:
           fill:
               dataset: district

@@ -7,23 +7,23 @@ layout:
     - type: text
       title: 'Muni Boardings Table'
       description: 'Table showing daily muni boardings in San Francisco'
-      file: 'Transit_muni_boardings_Daily.md'
+      file: 'data/Transit_muni_boardings_Daily.md'
 
     - type: text
       title: 'Rail Volumes Table'
       description: 'Table showing daily inbound and outbound rail volumes'
-      file: 'Transit_rail_volumes_Daily.md'
+      file: 'data/Transit_rail_volumes_Daily.md'
 
   Transit1:
     - type: text
       title: 'Rail Boardings Table'
       description: 'Table showing daily rail boardings for Downtown, San Francisco and the Bay Area'
-      file: 'Transit_rail_boardings_Daily.md'
+      file: 'data/Transit_rail_boardings_Daily.md'
 
     - type: text
       title: 'Bus Volumes Table'
       description: 'Table showing daily inbound and outbound bus volumes'
-      file: 'Transit_bus_volumes_Daily.md'
+      file: 'data/Transit_bus_volumes_Daily.md'
   
   Map Muni Bus:
     - type: map
@@ -34,10 +34,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: bus.shp
+      shapes: data/bus.shp
       datasets:
           muniBus:
-              file: reg_am.csv
+              file: data/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -67,10 +67,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: bus.shp
+      shapes: data/bus.shp
       datasets:
           muniBus:
-              file: reg_pm.csv
+              file: data/reg_pm.csv
               join: AB
       display:
           lineColor:
@@ -101,10 +101,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: rail.shp
+      shapes: data/rail.shp
       datasets:
           muniBus:
-              file: reg_am.csv
+              file: data/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -135,10 +135,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: rail.shp
+      shapes: data/rail.shp
       datasets:
           muniBus:
-              file: reg_pm.csv
+              file: data/reg_pm.csv
               join: AB
       display:
           lineColor:
@@ -170,10 +170,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: reg.shp
+      shapes: data/reg.shp
       datasets:
           muniBus:
-              file: reg_am.csv
+              file: data/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -204,10 +204,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: reg.shp
+      shapes: data/reg.shp
       datasets:
           muniBus:
-              file: reg_pm.csv
+              file: data/reg_pm.csv
               join: AB
       display:
           lineColor:

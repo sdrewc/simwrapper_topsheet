@@ -1,0 +1,31 @@
+{
+    "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+    "data": {"url": "data/vmt_vc_sf.csv"},
+    "mark": "bar",
+    "encoding": {
+        "x": {
+            "field": "Time",
+            "type": "nominal",
+            "title": "Time",
+            "sort": ["AM", "MD", "PM", "EV", "EA"],
+            "axis": {"labelAngle": 0}
+        },
+        "y": {
+            "aggregate": "sum", 
+            "field": "Percentage",
+            "type": "quantitative",
+            "axis": {"format": "%"},
+            "title": "Percentage",
+            "stack": "normalize"
+        },
+        "color": {
+            "field": "Category",
+            "type": "nominal",
+            "sort": ["TNC", "Commercial Vehicles", "Trucks", "Shared Ride 3+", "Shared Ride 2", "Drive Alone"]
+        },
+        "tooltip": [
+            {"field": "Category", "type": "nominal"},
+            {"field": "Percentage", "type": "quantitative", "format": ".2%"}
+        ]
+    }
+}
