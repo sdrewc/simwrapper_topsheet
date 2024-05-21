@@ -26,7 +26,7 @@ layout:
   barplot1:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco
-      config: data/vc_sf.vega.json
+      config: geo/vc_sf.vega.json
 
   table2:
     - type: text
@@ -43,7 +43,7 @@ layout:
   barplot2:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Rest of Bay Area
-      config: data/vc_nonsf.vega.json
+      config: geo/vc_nonsf.vega.json
 
   table3:
     - type: text
@@ -60,4 +60,4 @@ layout:
   barplot3:
     - type: vega
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Bay Area
-      config: data/vc_ba.vega.json
+      config: geo/vc_ba.vega.json
