@@ -391,6 +391,7 @@ sum_df = pd.DataFrame(
 
 # Concatenate the new DataFrame with the original DataFrame
 df = pd.concat([sum_df, purpose_df1])
+df = df.fillna(0)
 
 df.index.name = "Districts"
 df["All Purpose"] = df.apply(lambda row: sum(row), axis=1)
