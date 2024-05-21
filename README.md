@@ -9,4 +9,4 @@ This section outlines how to configure and run scripts necessary for generating 
    - **OUTPUT_FOLDER**: Set this to the directory where the topsheet outputs should be saved.
    
 2. **Execution**:
-   - Double-click `topsheet_run.bat` to initiate the topsheet creation process.
+   - Execute `topsheet_run.bat` as an administrator to initiate the topsheet creation process.
