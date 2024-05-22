@@ -8,7 +8,7 @@ import os
 from utilTools import DataFrameToCustomHTML
 from pathlib import Path
 
-
+# Extract folder settings from the control file
 CTL_FILE = r"../topsheet.ctl"
 
 config = configparser.ConfigParser()
@@ -16,7 +16,7 @@ config.read(CTL_FILE)
 WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
 OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 
-
+# Extract input file names from the control file
 AM_csv = os.path.join(WORKING_FOLDER, config["transit"]["SFALLMSAAM_CSV"])
 PM_csv = os.path.join(WORKING_FOLDER, config["transit"]["SFALLMSAPM_CSV"])
 EA_csv = os.path.join(WORKING_FOLDER, config["transit"]["SFALLMSAEA_CSV"])
@@ -38,7 +38,7 @@ linked_muni_files = {
     "EV": os.path.join(WORKING_FOLDER, config["transit"]["LINKEDMUNI_EV_DBF"]),
     "EA": os.path.join(WORKING_FOLDER, config["transit"]["LINKEDMUNI_EA_DBF"]),
 }
-
+# Define constants
 TIMEPERIODS = {1: "EA", 2: "AM", 3: "MD", 4: "PM", 5: "EV"}
 TRN_QUICKBOARDS_CTL = (
     "quickboards-topsheet.ctl"  # use local - it might have nodes.xls configured
@@ -114,6 +114,19 @@ CALTRAIN_STOPS_SF.extend(CALTRAIN_STOPS_DOWNTOWN)
 
 
 def getTransitBoardingsForLine(line, df, stops=[]):
+    """
+    Calculates the total boardings for a specified transit line, optionally filtering by specific stops.
+
+    Parameters:
+    - line (str): The identifier or name prefix of the transit line for which to calculate boardings.
+    - df (DataFrame): A pandas DataFrame containing transit data with columns for stop names and boarding numbers.
+    - stops (list, optional): A list of stop identifiers to filter the boardings data. If empty, all stops on the line are considered.
+
+    Returns:
+    - int: The total number of boardings for the specified line and stops.
+
+    This function supports detailed analysis of boarding activities, allowing for specific line segments and individual stops.
+    """
     linelen = len(line)
     boardings = 0
     if len(stops) == 0:
@@ -171,6 +184,16 @@ class SanFranciscoNodeChecker:
 
 
 def getTransitVolumes(system, df):
+    """
+    Computes the inbound and outbound transit volumes for specified transit systems within and around San Francisco.
+
+    Parameters:
+    - system (str): The code representing the transit system (e.g., BART, Caltrain).
+    - df (DataFrame): A DataFrame containing transit data, expected to have columns 'NAME', 'A', 'B', and 'AB_VOL'.
+
+    Returns:
+    - list: A list containing the total inbound and outbound volumes as integers.
+    """
     sfNC = SanFranciscoNodeChecker()
     sf = []
     nonsf = []
@@ -228,6 +251,17 @@ def getTransitVolumes(system, df):
 
 
 def getTransitBoardings(df, timePeriod):
+    """
+    Computes transit boardings for different transit lines and systems, categorizing by various characteristics such as bus, rail, and specific line boardings.
+
+    Parameters:
+    - df (DataFrame): A DataFrame containing transit boarding data.
+    - timePeriod (str): The time period for which boardings are being calculated.
+
+    Returns:
+    - dict: A dictionary containing boarding data for different transit systems and specific criteria within each.
+    """
+
     transit = {}
     transit[TRN_MUNI_BUS] = [0]
     transit[TRN_MUNI_RAIL] = [0]
@@ -319,6 +353,17 @@ def getTransitBoardings(df, timePeriod):
 
 
 def get_total_transit(res_dict):
+    """
+    Aggregates transit data across multiple records to compute total boardings for various transit categories.
+
+    Parameters:
+    - res_dict (dict): A dictionary containing daily transit data, with each key representing a transit type and each value being a list of integers representing transit data.
+
+    Returns:
+    - dict: A dictionary with aggregated transit data for each category.
+
+    This function sums up transit data for various transit systems and lines, providing a comprehensive total for each.
+    """
     transit_daily = {}
     transit_daily[TRN_MUNI_BUS] = [0]
     transit_daily[TRN_MUNI_RAIL] = [0]
@@ -362,7 +407,7 @@ def get_total_transit(res_dict):
             transit_daily[TRN_XFER_LINKED][i] += val
     return transit_daily
 
-
+# Convert dbf files to csv files if missing
 csv_files = [AM_csv, PM_csv, MD_csv, EV_csv, EA_csv]
 missing_csv_files = []
 for csv_file in csv_files:
@@ -394,7 +439,7 @@ else:
 def is_integer(value):
     return isinstance(value, (int, float)) and value.is_integer()
 
-
+# 1.Transit_bus_volumes_Daily.md, 2.Transit_rail_volumes_Daily.md, 3.Transit_rail_boardings_Daily.md, 4.Transit_muni_boardings_Daily.md
 AM = pd.read_csv(AM_csv, low_memory=False)
 PM = pd.read_csv(PM_csv, low_memory=False)
 EV = pd.read_csv(EV_csv, low_memory=False)
@@ -472,6 +517,20 @@ for df in [df_muni_ridership, df_rail_boardings, df_rail_volume, df_bus_volume]:
 
 
 class SimwrapperMapConstructor:
+    """
+    Constructs geographic visualizations for transit data by creating geospatial maps for bus,
+    rail, and regional transit links.
+
+    Attributes:
+    - link_data_path (str): File path for CSV containing transit link data.
+    - node_data_path (str): File path for CSV containing transit node data.
+    - bus_output (str): Output file path for bus network shapefiles.
+    - rail_output (str): Output file path for rail network shapefiles.
+    - reg_output (str): Output file path for regional network shapefiles.
+    - caltrain_nodes (list): List of node identifiers for Caltrain.
+
+    This class handles the processing of transit data to generate geospatial maps using GeoPandas.
+    """
     def __init__(
         self, link_data_path, node_data_path, bus_output, rail_output, reg_output
     ):
@@ -586,6 +645,20 @@ class SimwrapperMapConstructor:
 
 
 class MapDataConstructor:
+    """
+    Handles the construction of map data by processing transit data from different time periods,
+    computing crowd levels, and preparing the data for visualization.
+
+    Attributes:
+    - am_datapath (str): Path to the CSV file for morning peak data.
+    - pm_datapath (str): Path to the CSV file for evening peak data.
+    - am_output (str): Output path for processed morning data.
+    - pm_output (str): Output path for processed evening data.
+    - caltrain_nodes (list): Specific node IDs used for Caltrain data filtering.
+    - peakHour_factor (dict): Multipliers for adjusting volumes to peak hour equivalents.
+    - tp_duration (dict): Duration of each time period to scale capacities.
+    - desired_modes (list): Modes of transit of interest.
+    """
     def __init__(self, am_datapath, pm_datapath, am_output, pm_output):
         self.am_file = am_datapath
         self.pm_file = pm_datapath
@@ -720,7 +793,7 @@ class MapDataConstructor:
         df = pd.DataFrame(data=data, columns=["A", "B", "MODE", "AB_VOL"])
         return df
 
-
+# 5. bus.shp, 6. rail.shp, 7.reg.shp
 link_data_path = AM_csv
 node_data_path = os.path.join(WORKING_FOLDER, config["transit"]["VALIDATE_CSV"])
 bus_output = os.path.join(OUTPUT_FOLDER, "bus.shp")
@@ -731,7 +804,7 @@ mapConstructor = SimwrapperMapConstructor(
     link_data_path, node_data_path, bus_output, rail_output, reg_output
 )
 mapConstructor.build_maps()
-
+# 8. reg_am.csv, 9. reg_pm.csv
 am_datapath = AM_csv
 pm_datapath = PM_csv
 am_output = os.path.join(OUTPUT_FOLDER, "reg_am.csv")
