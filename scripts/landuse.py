@@ -6,7 +6,7 @@ import itertools
 from utilTools import readEqvFile, DataFrameToCustomHTML, modifyDistrictNameForMap
 from pathlib import Path
 
-
+# Extract folder settings from the control file for land use
 CTL_FILE = r"../topsheet.ctl"
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
@@ -97,7 +97,26 @@ def convertToCumulative(input_dict):
 
 
 def calcualte_densities(eqvfile, LU_FILE, SQ_FILE, accumulated):
+    """
+    Calculates various densities per district based on land use and area measurements.
 
+    Parameters:
+    - eqvfile (str): File path for the equivalence file that maps TAZs to districts.
+    - LU_FILE (str): File path for the land use data file.
+    - SQ_FILE (str): File path for the square mileage data file.
+    - accumulated (bool): Determines if the output should be cumulative across districts.
+
+    Returns:
+    - DataFrame: A pandas DataFrame containing the district names with calculated densities of households,
+      population, employed residents, and total employment per square mile.
+    
+    The function operates as follows:
+    - It reads district and TAZ mapping data from the equivalence file.
+    - Loads TAZ-level data and aggregates it to district level based on square mileage.
+    - Depending on the 'accumulated' flag, it either processes cumulative data or just the raw land use attributes.
+    - Merges land use data with the square mileage data to compute the densities.
+    - Returns a DataFrame with the density data along with district names, renamed for clarity.
+    """
     distnames, distToTaz, tazToDist, numdists = readEqvFile(eqvfile)
     tazdbf = Dbf5(SQ_FILE)
     tazdf = tazdbf.to_dataframe()
@@ -146,7 +165,26 @@ def calcualte_densities(eqvfile, LU_FILE, SQ_FILE, accumulated):
 
 
 def merge_luFiles(LU_FILE, LU_CLEAN_FILE, taz=True):
+    """
+    Merges land use data from two files and calculates densities for various attributes.
 
+    Parameters:
+    - LU_FILE (str): Path to the original land use data file.
+    - LU_CLEAN_FILE (str): Path to the cleaned land use data file.
+    - taz (bool): Flag to determine if data should be processed at TAZ level (True) or district level (False).
+
+    Returns:
+    - DataFrame: A pandas DataFrame containing the merged data with density calculations for households, population,
+      employed residents, and total employment per square mile.
+    
+    The function performs the following steps:
+    - Loads data from the two DBF files into DataFrames.
+    - Filters the main DataFrame to include only TAZs present in a pre-defined mapping (assumes tazToDist is defined).
+    - Merges the filtered data with square mileage data from the cleaned file based on TAZ.
+    - Depending on the 'taz' flag, aggregates data by district or leaves it at TAZ level.
+    - Calculates density metrics for households, population, employed residents, and total employment per square mile.
+    - Returns the DataFrame with density data and district names if aggregated.
+    """
     df = Dbf5(LU_FILE).to_dataframe()
     tazdf = Dbf5(LU_CLEAN_FILE).to_dataframe()
     filtered_df = df[df["SFTAZ"].isin(tazToDist.keys())]
@@ -179,7 +217,7 @@ def merge_luFiles(LU_FILE, LU_CLEAN_FILE, taz=True):
 
     return merged_df
 
-
+# 1. Generate 'landuse.md'
 district_density_df = calcualte_densities(DIST_EQV, LU_FILE, LU_CLEAN_FILE, False)
 area_density_df = calcualte_densities(AREA_EQV, LU_FILE, LU_CLEAN_FILE, True)
 area_density_df.drop(0, inplace=True)
@@ -202,6 +240,7 @@ md_path = os.path.join(OUTPUT_FOLDER, "landuse.md")
 
 df2html.generate_html(combined_df, md_path)
 
+# 2. Generate landuse.csv
 csv_df = district_density_df[
     [
         "DISTRICT_NAME",
@@ -221,6 +260,7 @@ csv_path = os.path.join(OUTPUT_FOLDER, "landuse.csv")
 csv_df.to_csv(csv_path, index=False)
 
 
+# 3. Generate landuse_density.csv
 distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
 merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE)
 renaming_dict = {
@@ -240,7 +280,7 @@ merged_df.rename(
 taz_map_csv = os.path.join(OUTPUT_FOLDER, "landuse_density.csv")
 merged_df.to_csv(taz_map_csv, index=False)
 
-
+# 4. Generate landuse_district.csv
 merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE, False)
 
 columns = [
