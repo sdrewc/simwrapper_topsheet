@@ -4,7 +4,7 @@
 This section outlines how to configure and run scripts necessary for generating topsheets using the Simwrapper dashboard.
 
 
-## Setting Up Your Environment
+## Quick Setup Example
 
 To streamline the setup process and reduce the need for manual configuration and file transfers, you should directly download the entire GitHub repository for each model run. Here’s how to proceed if you're setting up a dashboard within the directory `X:\Projects\CHAMP7\Run25w_Market`:
 
