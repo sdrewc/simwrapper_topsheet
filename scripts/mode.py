@@ -17,7 +17,7 @@ config.read(CTL_FILE)
 WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
 OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 
-# Extract file names from the control file
+# Extract input file names from the control file
 MS_SUMMIT_RPM9_CTL = os.path.join(
     WORKING_FOLDER, config["mode_share"]["MS_SUMMIT_RPM9_CTL"]
 )

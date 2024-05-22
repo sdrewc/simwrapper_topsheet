@@ -6,7 +6,7 @@ import os, sys, subprocess
 from utilTools import DataFrameToCustomHTML
 from pathlib import Path
 
-
+# Extract folder settings from the control file
 CTL_FILE = r"../topsheet.ctl"
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
@@ -15,8 +15,7 @@ OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 SCRIPT_FOLDER = Path(config["folder_setting"]["SCRIPT_FOLDER"])
 
 
-# Traffic constants
-SCRIPT_PATH = sys.path[0] + "\\"
+# Extract input file names from the control file
 HWY_CREATEDAILY_CMD = os.path.join(
     SCRIPT_FOLDER, config["traffic"]["Traffic_LOADEXPORT_CMD"]
 )
@@ -28,6 +27,9 @@ HWY_VOLFILES = {
     "EA": config["traffic"]["ea_vols_dbf"],
     "Daily": config["traffic"]["daily_vols_dbf"],
 }
+
+#define traffic constants
+
 HWY_ALLCOUNTYLINES = "All SF County Lines"
 HWY_ROWS = [
     HWY_ALLCOUNTYLINES,
@@ -309,7 +311,27 @@ def runtpp(scriptname, outputfile, env=None):
 
 
 def getTrafficScreens(timePeriod="Daily"):
-    """ """
+    """
+    Extracts and aggregates traffic volume data for predefined screenlines based on the time period.
+
+    Parameters:
+    - timePeriod (str): The time period for which the traffic data is required. Defaults to "Daily".
+
+    Returns:
+    - dict: A dictionary with keys as screenline names and values as lists [inbound traffic volume, outbound traffic volume].
+
+    This function performs the following tasks:
+    1. Determines the file path for highway volume data based on the time period.
+    2. If necessary, creates daily volume data using a predefined command.
+    3. Reads the volume data from a DBF file into a DataFrame.
+    4. Sets up a mapping from segment identifiers to screenline names and direction (inbound or outbound).
+    5. Loops through the DataFrame to aggregate traffic volumes for each screenline.
+    6. Converts volume totals to integers for cleaner output.
+    7. Aggregates volumes for specific county lines into a combined traffic count.
+
+    The screenline mapping and volume data are predefined. The function relies on global variables and external commands
+    to manipulate and access the data.
+    """
     hwyfile = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
     runtpp(HWY_CREATEDAILY_CMD, hwyfile)  # create it, if needed
     file_dbf = dbf(hwyfile)
@@ -355,7 +377,7 @@ def getTrafficScreens(timePeriod="Daily"):
     )
     return traffic
 
-
+# 1.traffic_dow.md
 time = ["AM", "MD", "PM", "EV", "EA"]
 dow_df = pd.DataFrame()
 for t in time:
@@ -385,6 +407,21 @@ df2html.generate_html(dow_df, md_path)
 
 
 def trafficMaps(timePeriod="Daily"):
+    """
+    Generates a CSV file of traffic volumes for different vehicle categories based on the specified time period.
+
+    Parameters:
+    - timePeriod (str): The time period for which to generate the traffic map, defaults to "Daily".
+
+    The function performs the following tasks:
+    1. Constructs the path to the highway volume data file based on the time period.
+    2. Reads the volume data from the file into a DataFrame.
+    3. Depending on the time period, selects the relevant columns for daily or specific time-period data.
+    4. Writes the selected traffic data to a CSV file in the designated output folder.
+    
+    This function is utilized for generating detailed traffic volume maps which can be used for further analysis or reporting.
+    """
+
     hwyfile = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
     file_dbf = dbf(hwyfile)
     hwydbf = file_dbf.to_dataframe()
@@ -425,12 +462,30 @@ def trafficMaps(timePeriod="Daily"):
         ],
     )
 
-
+# 2. traffic_map_Daily.csv
 trafficMaps()
 
 
 def getTypeTrafficScreens(timePeriod="Daily"):
-    """ """
+    """
+    Aggregates and returns traffic volume data by vehicle type for each screenline based on the specified time period.
+
+    Parameters:
+    - timePeriod (str): Specifies the time period for which traffic data should be retrieved. Defaults to "Daily".
+
+    Returns:
+    - list: A list of dictionaries. Each dictionary corresponds to a specific vehicle type and contains traffic volume data
+            for each screenline, both inbound and outbound.
+
+    The function performs the following steps:
+    1. Constructs the path to the highway volume data file based on the time period and loads it into a DataFrame.
+    2. Establishes a mapping from segment identifiers to screenline names and direction (inbound or outbound).
+    3. Iterates over each vehicle type, accumulating traffic volumes for each screenline segment.
+    4. Converts traffic volume totals to integers for clearer analysis.
+    5. Aggregates total traffic volumes for county lines and returns a structured list of traffic data.
+
+    This method is useful for traffic analysis where detailed breakdown by vehicle type is needed for specific screenlines over different time periods.
+    """
     hwyfile = os.path.join(WORKING_FOLDER, HWY_VOLFILES[timePeriod])
     file_dbf = dbf(hwyfile)
     hwydbf = file_dbf.to_dataframe()
@@ -488,6 +543,20 @@ def getTypeTrafficScreens(timePeriod="Daily"):
 
 
 def lineFiles(dicts, line):
+    """
+    Transforms a list of dictionaries into a structured DataFrame showing inbound and outbound traffic volumes for different vehicle classes.
+
+    Parameters:
+    - dicts (list of dict): A list of dictionaries where each dictionary represents traffic data from different files.
+    - line (str): The screenline identifier for which traffic data is needed.
+
+    Returns:
+    - DataFrame: A DataFrame containing structured traffic data for the specified screenline, 
+                  including inbound and outbound volumes for various vehicle classes, and a total sum row.
+
+    This function processes multiple traffic data entries, consolidates them into a single DataFrame,
+    and calculates sum totals for a clear and concise overview of traffic volumes.
+    """
     df1 = [pd.DataFrame(d) for d in dicts]
     df2 = pd.concat(df1, ignore_index=True).T
     mtables = df2.iloc[[1, 9, 10, 11]]
@@ -508,7 +577,7 @@ def lineFiles(dicts, line):
     df2html = DataFrameToCustomHTML([], [0])
     df2html.generate_html(df, md_path)
 
-
+#3 traffice_SM County Line.md, 4.traffice_GG Bridge.md, 5.traffice_Bay Bridge.md, 6.traffice_All SF County Lines.md,
 dicts = getTypeTrafficScreens()
 majorLines = ["SM County Line", "GG Bridge", "Bay Bridge", "All SF County Lines"]
 for line in majorLines:
