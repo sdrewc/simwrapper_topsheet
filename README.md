@@ -1,7 +1,7 @@
 # Simwrapper Dashboard and Summary File Configuration for Topsheet Generation
 
 ## Overview
-This section outlines how to configure and run scripts necessary for generating topsheets using the Simwrapper dashboard.
+This section describes the process for configuring and executing scripts to generate the datasets required to create Topsheet Simwrapper dashboards.
 
 
 ## Quick Setup Example
