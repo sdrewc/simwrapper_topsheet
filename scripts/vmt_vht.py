@@ -12,7 +12,7 @@ config.read(CTL_FILE)
 WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
 OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 SCRIPT_FOLDER = Path(config["folder_setting"]["SCRIPT_FOLDER"])
-
+# Extract input file names from the control file
 NET_FILES = [
     config["vmt_vht"]["AM_vmt_vht_file"],
     config["vmt_vht"]["PM_vmt_vht_file"],
@@ -43,7 +43,7 @@ def run_cube_script(directory, script_path, net_file):
         print(f"Failed to process {net_file}: {result.stderr}")
 
 
-# Process each file
+# Process each file if missing
 for file in NET_FILES:
     if not os.path.exists(os.path.join(WORKING_FOLDER, file + ".csv")):
         run_cube_script(WORKING_FOLDER, script_path, file)
@@ -56,6 +56,15 @@ VMT_ROWS = [VMT_VMT, VMT_VHT, VMT_VMTOVERVHT, VMT_LOSTTIME]
 
 
 def getVmtRaw(timePeriod):
+    """
+    Calculates vehicle miles traveled (VMT) and related metrics for different segments and conditions based on the specified time period.
+
+    Parameters:
+    - timePeriod (str): The time period for which VMT data is being calculated. This can be 'AM', 'MD', 'PM', 'EV', 'EA', or 'Daily'.
+
+    Returns:
+    - list: A list containing VMT and vehicle hours traveled (VHT) metrics for San Francisco (SF) and the region, including lost time due to congestion.
+    """
     if timePeriod == "Daily":
         am_arr = getVmtRaw("AM")
         md_arr = getVmtRaw("MD")
@@ -113,7 +122,15 @@ def getVmtRaw(timePeriod):
 
 
 def getVmt(timePeriod="Daily"):
-    """Returns standard format.  Just for sf and rest of ba tho."""
+    """
+    Calculates vehicle miles traveled (VMT), vehicle hours traveled (VHT), average speeds, and lost vehicle hours for San Francisco and the rest of the Bay Area.
+
+    Parameters:
+    - timePeriod (str): The time period for which metrics are calculated. Defaults to "Daily".
+
+    Returns:
+    - dict: A dictionary containing VMT, VHT, speed, and lost vehicle hours.
+    """
     raw = getVmtRaw(timePeriod)
     vmt = {}
     vmt["VMT"] = (raw[0], raw[3] - raw[0], raw[3])
@@ -132,6 +149,21 @@ def format_with_commas(x):
 
 
 def dictToMD(res, res_index, index_name, index_list, output_file):
+    """
+    Converts a dictionary containing transit data into a Markdown file for reporting.
+
+    Parameters:
+    - res (dict): The dictionary containing transit data.
+    - res_index (int): The index to select data from nested items.
+    - index_name (str): Name of the index column.
+    - index_list (list): A list of indices, such as time periods.
+    - output_file (str): The name of the output Markdown file.
+
+    Processes:
+    - Formats data into a DataFrame.
+    - Converts DataFrame to HTML.
+    - Saves HTML output to a Markdown file.
+    """
     formatted_data = {"VMT": [], "VHT": [], "Speed": [], "Lost VH (vs freeflow)": []}
     for tp in index_list:
         for key, value in res[tp].items():
@@ -149,6 +181,20 @@ def dictToMD(res, res_index, index_name, index_list, output_file):
 
 
 def getVC(region, output_file, index_name):
+    """
+    Calculates and saves vehicle categories and their contributions as percentages and raw values to CSV and Markdown files.
+
+    Parameters:
+    - region (str): Specifies the region of interest ('sf', 'nonsf', or 'ba').
+    - output_file (str): The base name for the output files (CSV and Markdown).
+    - index_name (str): Name of the index column (not explicitly used in the function).
+
+    Processes:
+    - Reads multiple data files.
+    - Filters and aggregates data by vehicle category for specified regions.
+    - Computes total and proportional statistics.
+    - Outputs results in both CSV and Markdown format.
+    """
     res = {
         "Drive Alone": [],
         "Shared Ride 2": [],
@@ -260,6 +306,7 @@ df = pd.DataFrame(data=formatted_data, index=["AM", "MD", "PM", "EV", "EA"])
 df = df.T
 df.index.name = "TOD"
 df = df.reset_index()
+# generate all outputs
 dictToMD(res, 0, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_sf")
 dictToMD(res, 1, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_nonsf")
 dictToMD(res, 2, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_ba")
