@@ -10,14 +10,14 @@ from utilTools import (
 )
 from pathlib import Path
 
-
+# Extract folder settings from the control file
 CTL_FILE = r"../topsheet.ctl"
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
 WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
 OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
 
-
+# Extract file names from the control file
 MS_SUMMIT_RPM9_CTL = os.path.join(
     WORKING_FOLDER, config["mode_share"]["MS_SUMMIT_RPM9_CTL"]
 )
@@ -37,6 +37,8 @@ Convert_mat2h5 = os.path.join(WORKING_FOLDER, config["mode_share"]["Convert_mat2
 rp_trips = os.path.join(
     WORKING_FOLDER, "daysim", "abm_output1", config["mode_share"]["RP_DISAG_TRIPS"]
 )
+
+# Define constants for mode share categories
 MS_SUMMIT_CTL = {"RPM9": MS_SUMMIT_RPM9_CTL, "champ": "MS_SUMMIT_CHAMP_CTL"}
 MS_AUTO = "Auto"
 MS_TRANSIT = "Transit"
@@ -228,7 +230,7 @@ def convert_mat_to_h5(directory, mat_file):
     else:
         print(f"Failed to convert {mat_file}.mat: {result.stderr}")
 
-
+# Convert MAT files to h5 files if missing
 h5_files = [AM_h5_file, PM_h5_file, MD_h5_file, EV_h5_file, EA_h5_file]
 missing_h5_files = []
 for h5_file in h5_files:
@@ -257,6 +259,7 @@ else:
         for mat_file in mat_file_names:
             convert_mat_to_h5(WORKING_FOLDER, mat_file)
 
+# Create temporary sumnum files
 
 ftables = {
     "ftable1": AM_h5_file,
@@ -335,6 +338,7 @@ with open(os.path.join(WORKING_FOLDER, "summit_file.sum"), "w") as file:
             file.write("|".join(map(str, row)) + "\n")
         file.write("\n")
 
+# 1. Mode_tod.md, 2. Mode_tod.csv
 sumnums = readSummitSumFile(
     os.path.join(WORKING_FOLDER, "summit_file.sum"), tablekeys, numdists
 )
@@ -365,6 +369,7 @@ df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "Mode_tod.md"), True)
 
 df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod.csv"), index=False)
 
+# 3. Mode_daily.md, 4. Mode_daily.csv 5. district_mode_tod.csv
 
 places = list(distnames.values())
 types = [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]
@@ -383,7 +388,7 @@ df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_daily.csv"), index=False)
 df_alt = modifyDistrictNameForMap(df_alt, "District")
 df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_tod.csv"), index=False)
 
-
+# 6. taz_mode.csv
 comb_arr = []
 for j in range(1, numdists + 1):
     comb_arr.append([i - 1 for i in distToTaz[j]])
@@ -416,6 +421,28 @@ mode_taz.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode.csv"), index=False)
 # --------------------------------------------------------------------------------------------------
 # Create mode share tab data using different input datasets( config['mode_share']['RP_DISAG_TRIPS'] )
 def modeShare_tp(final_df, ocode, dcode, place, tp):
+    """
+    Calculates the mode shares for different transportation modes for a given place and time period.
+
+    Parameters:
+    - final_df (DataFrame): The DataFrame containing travel data.
+    - ocode (str): Column name in `final_df` representing the origin code.
+    - dcode (str): Column name in `final_df` representing the destination code.
+    - place (int or str): The specific place code to filter the data by origin or destination.
+    - tp (str): The time period for which to calculate mode shares. If "Daily", it includes all time periods.
+
+    Returns:
+    - list: A list containing summed travel expenditures for auto, transit, pedestrian, bicycle, and TNC modes.
+
+    This function filters the DataFrame based on the specified time period and place. It then calculates
+    the total travel expenditures (represented by the 'trexpfac' column) for each transportation mode
+    where the origin or destination matches the specified place. The modes are categorized as follows:
+    - Auto: Modes 3, 4, and 5
+    - Transit: Mode 6
+    - Pedestrian: Mode 1
+    - Bicycle: Mode 2
+    - TNC: Mode 9
+    """
     if tp != "Daily":
         df = final_df[final_df["tp"] == tp]
     else:
@@ -439,6 +466,29 @@ def modeShare_tp(final_df, ocode, dcode, place, tp):
 
 
 def modeShareSF_tp(final_df, ocode, dcode, places, tp):
+    """
+    Calculates the mode shares for different transportation modes for specified places and a given time period.
+
+    Parameters:
+    - final_df (DataFrame): The DataFrame containing travel data.
+    - ocode (str): Column name in `final_df` representing the origin code.
+    - dcode (str): Column name in `final_df` representing the destination code.
+    - places (list): A list of places (codes) to filter the data by origin or destination.
+    - tp (str): The time period for which to calculate mode shares. If "Daily", includes all time periods.
+
+    Returns:
+    - list: A list containing summed travel expenditures for auto, transit, pedestrian, bicycle, and TNC modes.
+
+    The function first filters the DataFrame based on the specified time period and checks if either the origin
+    or destination matches any of the specified places. It then calculates the total travel expenditures
+    (represented by 'trexpfac' column) for each transportation mode where the travel is related to the specified
+    places. The modes are categorized as follows:
+    - Auto: Modes 3, 4, and 5
+    - Transit: Mode 6
+    - Pedestrian: Mode 1
+    - Bicycle: Mode 2
+    - TNC: Mode 9
+    """
     # Filter the dataframe for the time period if it's not 'Daily'
     if tp != "Daily":
         df = final_df[final_df["tp"] == tp]
@@ -459,6 +509,28 @@ def modeShareSF_tp(final_df, ocode, dcode, places, tp):
 
 
 def get_mode_shares(place, mode_sums):
+    """
+    Calculates the travel expenditure sums for various transportation modes at a specific place.
+
+    Parameters:
+    - place (int or str): The specific place code to filter the data by origin or destination.
+    - mode_sums (DataFrame): The DataFrame containing mode and travel expenditure data.
+
+    Returns:
+    - list: A list of sums of travel expenditures for the specified modes in the order of mode codes.
+
+    This function filters the input DataFrame to include only rows where the origin or destination matches
+    the specified place. It then initializes a dictionary to keep track of travel expenditures for each
+    transportation mode. The function iterates over each mode, calculating the total travel expenditures for
+    each and returning these values in a list ordered by mode codes.
+
+    Mode mapping:
+    - 1: Pedestrian
+    - 2: Bicycle
+    - 3, 4, 5: Auto (can be merged if they represent similar auto categories)
+    - 6: Transit
+    - 9: TNC (Transport Network Company)
+    """
     relevant_rows = mode_sums[
         (mode_sums["otaz"] == place) | (mode_sums["dtaz"] == place)
     ]
@@ -477,6 +549,7 @@ def get_mode_shares(place, mode_sums):
         ].sum()
     return [mode_shares[mode] for mode in sorted(mode_shares)]
 
+# filter dataframe for data processing
 
 necessary_columns = [
     "dpurp",
@@ -531,6 +604,7 @@ final_df["d15code"] = final_df["dtaz"].map(lambda x: tazToDist[x][0])
 timePeriods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
 districts = {}
 
+# 7.Mode_tod_tab_district.md, 8.Mode_tod_tab_district.csv, 9. district_mode_tod_tab_map.csv
 for pc in distnames.keys():
     percentage = modeShare_tp(final_df, "o15code", "d15code", pc, "Daily")
     tmp_sum = sum(percentage)
@@ -552,6 +626,7 @@ df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod_tab_district.csv"), index=False)
 df = modifyDistrictNameForMap(df, "District")
 df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_tod_tab_map.csv"), index=False)
 
+# 10. Mode_tod_tab.md, 11.Mode_tod_tab.csv"
 sf = {}
 for tp in timePeriods:
     percentage = modeShareSF_tp(final_df, "o3code", "d3code", [1, 2], tp)
@@ -575,6 +650,7 @@ flatten_comb_arr = [item for sublist in comb_arr for item in sublist]
 
 mode_sums = final_df.groupby(["otaz", "dtaz", "mode"])["trexpfac"].sum().reset_index()
 
+# 12. taz_mode_tab.csv
 output = [get_mode_shares(taz, mode_sums) for taz in flatten_comb_arr]
 final = []
 for i in range(len(output)):
