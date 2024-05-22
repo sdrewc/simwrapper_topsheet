@@ -270,7 +270,7 @@ def getVC(region, output_file, index_name):
     df2html = DataFrameToCustomHTML([], [0])
     df2html.generate_html(df, md_path)
 
-
+# 1.vmt_Daily.md
 res = {
     "Daily": getVmt(),
     "AM": getVmt("AM"),
@@ -306,10 +306,11 @@ df = pd.DataFrame(data=formatted_data, index=["AM", "MD", "PM", "EV", "EA"])
 df = df.T
 df.index.name = "TOD"
 df = df.reset_index()
-# generate all outputs
+# 2.vmt_ba.md, 3.vmt_sf.md, 4.vmt_nonsf.md, 
 dictToMD(res, 0, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_sf")
 dictToMD(res, 1, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_nonsf")
 dictToMD(res, 2, "TOD", ["AM", "MD", "PM", "EV", "EA"], "vmt_ba")
+# 5.vmt_vc_ba.md, 6.vmt_vc_sf.md, 7.vmt_vc_nonsf.md, 8.vmt_vc_ba.csv, 9.vmt_vc_sf.csv, 10.vmt_vc_nonsf.csv
 getVC("sf", "vmt_vc_sf", "TOD")
 getVC("nonsf", "vmt_vc_nonsf", "TOD")
 getVC("ba", "vmt_vc_ba", "TOD")
