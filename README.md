@@ -9,15 +9,16 @@ This section describes the process for configuring and executing scripts to gene
 To streamline the setup process and reduce the need for manual configuration and file transfers, you should directly download the entire GitHub repository for each model run. Here’s how to proceed if you're setting up a dashboard within the directory `X:\Projects\CHAMP7\Run25w_Market`:
 
 1. **Create a New Folder**:
-   - Create a folder named "topsheet" and download the GitHub repository into this folder.
+   - Copy `folders_config.txt` and `topsheet_run.bat` into a folder
 
 2. **Modify Configuration Files**:
-   - In the `topsheet.ctl` file, set the following:
+   - In the `folders_config.txt` file, set the following:
      - `WORKING_FOLDER` to `X:\Projects\CHAMP7\Run25w_Market`. I strongly recommend using an absolute path for accuracy and consistency.
-     - `OUTPUT_FOLDER` to `X:\Projects\CHAMP7\Run25w_Market\topsheet\data`. Again, using an absolute path is highly recommended for best results.
+     - `OUTPUT_FOLDER` to `X:\Projects\CHAMP7\Run25w_Market\dc_test\topsheet\data`. Again, using an absolute path is highly recommended for best results.
+     - `SCRIPTS_FOLDER`(Typically, you don't have to change this part.)
 
 3. **Execution**:
-   - Execute `topsheet_run.bat` as an administrator to view the dashboard.
+   - Execute `topsheet_run.bat`  to view the dashboard.
 
 For more information and to check for potential errors, please view 
 
