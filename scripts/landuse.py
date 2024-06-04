@@ -7,11 +7,12 @@ from utilTools import readEqvFile, DataFrameToCustomHTML, modifyDistrictNameForM
 from pathlib import Path
 
 # Extract folder settings from the control file for land use
-CTL_FILE = r"../topsheet.ctl"
+CTL_FILE = r"topsheet.ctl"
+
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
-OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
+WORKING_FOLDER = os.getenv('WORKING_FOLDER')
+OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 
 # Extract file names from the control file for land use
 LU_FILE_NAME = config["land_use"]["LU_FILE"]
@@ -251,11 +252,6 @@ csv_df = district_density_df[
     ]
 ]
 
-csv_df = csv_df.set_index("DISTRICT_NAME")
-csv_df.index.name = "Area"
-csv_df = csv_df.reset_index().melt(
-    id_vars=["Area"], var_name="category", value_name="value"
-)
 csv_path = os.path.join(OUTPUT_FOLDER, "landuse.csv")
 csv_df.to_csv(csv_path, index=False)
 

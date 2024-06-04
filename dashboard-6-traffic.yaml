@@ -39,7 +39,7 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: geo/freeflow.shp
+      shapes: ../../../../shapefiles/Topsheet/freeflow.shp
       datasets:
           traffic:
               file: data/traffic_map_Daily.csv

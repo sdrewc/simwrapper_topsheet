@@ -24,9 +24,15 @@ layout:
       file: 'data/vmt_vc_sf.md'
 
   barplot1:
-    - type: vega
+    - type: bar
       title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco
-      config: geo/vc_sf.vega.json
+      props:
+        dataset: "data/vmt_vc_sf.csv"
+        x: "TOD"
+        stacked: true
+        columns: ['Drive Alone',  'Shared Ride 2',  'Shared Ride 3+','Trucks',  'Commercial Vehicles','TNC']
+        xAxisName: 'Time of the Day'
+        yAxisName: 'Percentage(%)'
 
   table2:
     - type: text
@@ -41,9 +47,15 @@ layout:
       file: 'data/vmt_vc_nonsf.md'
 
   barplot2:
-    - type: vega
-      title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Rest of Bay Area
-      config: geo/vc_nonsf.vega.json
+    - type: bar
+      title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco
+      props:
+        dataset: "data/vmt_vc_nonsf.csv"
+        x: "TOD"
+        stacked: true
+        columns: ['Drive Alone',  'Shared Ride 2',  'Shared Ride 3+','Trucks',  'Commercial Vehicles','TNC']
+        xAxisName: 'Time of the Day'
+        yAxisName: 'Percentage(%)'
 
   table3:
     - type: text
@@ -58,6 +70,12 @@ layout:
       file: 'data/vmt_vc_ba.md'
 
   barplot3:
-    - type: vega
-      title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- Bay Area
-      config: geo/vc_ba.vega.json
+    - type: bar
+      title: Percentage of Vehicle Miles Traveled (VMT) by Vehicle Class ---- San Francisco
+      props:
+        dataset: "data/vmt_vc_ba.csv"
+        x: "TOD"
+        stacked: true
+        columns: ['Drive Alone',  'Shared Ride 2',  'Shared Ride 3+','Trucks',  'Commercial Vehicles','TNC']
+        xAxisName: 'Time of the Day'
+        yAxisName: 'Percentage(%)'

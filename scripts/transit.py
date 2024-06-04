@@ -9,12 +9,12 @@ from utilTools import DataFrameToCustomHTML
 from pathlib import Path
 
 # Extract folder settings from the control file
-CTL_FILE = r"../topsheet.ctl"
+CTL_FILE = r"topsheet.ctl"
 
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
-OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
+WORKING_FOLDER = os.getenv('WORKING_FOLDER')
+OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 
 # Extract input file names from the control file
 AM_csv = os.path.join(WORKING_FOLDER, config["transit"]["SFALLMSAAM_CSV"])

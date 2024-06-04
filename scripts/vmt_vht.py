@@ -6,11 +6,11 @@ from pathlib import Path
 
 
 # Read parameters from control file
-CTL_FILE = r"../topsheet.ctl"
+CTL_FILE = r"topsheet.ctl"
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
-OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
+WORKING_FOLDER = os.getenv('WORKING_FOLDER')
+OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 SCRIPT_FOLDER = Path(config["folder_setting"]["SCRIPT_FOLDER"])
 # Extract input file names from the control file
 NET_FILES = [
@@ -249,13 +249,11 @@ def getVC(region, output_file, index_name):
     class_sums = df.sum()
 
     for column in df.columns:
-        df[column] = round(df[column] / class_sums[column], 4)
-    df_melt = df.reset_index().melt(
-        id_vars="index", var_name="Time", value_name="Percentage"
-    )
-    df_melt.columns = ["Category", "Time", "Percentage"]
+        df[column] = 100 * round(df[column] / class_sums[column], 3)
+    df_mlt = df.T
+    df_mlt.index.name = 'TOD'
     csv_path = os.path.join(OUTPUT_FOLDER, f"{output_file}.csv")
-    df_melt.to_csv(csv_path, index=False)
+    df_mlt.to_csv(csv_path)
     for key, values in res.items():
         tmp = []
         for value in values:

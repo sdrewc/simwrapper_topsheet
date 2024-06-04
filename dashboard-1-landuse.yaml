@@ -16,9 +16,11 @@ layout:
       file: data/landuse.md
   bar chart:
     - title: Land Use Plot
-      type: vega
+      type: bar
       description: 'The grouped bar chart displays four metrics - Households Density, Population Density, Employed Residents Density, and Employment Density - for 15 districts. Density values are calculated by dividing the corresponding indicators by the square miles of each area.'
-      config: geo/landuse.vega.json
+      dataset: 'data/landuse.csv'
+      x: 'DISTRICT_NAME'
+      columns: [	'HH DENSITY',	'POP DENSITY',	'EMP RES DENSITY',	'TOTAL EMP DENSITY']
   Land Use Map - Taz:
     - type: map
       title: Land Use Map - TAZ
@@ -28,7 +30,7 @@ layout:
           - -122.42
           - 37.77
       height: 13
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/landuse_density.csv
@@ -62,7 +64,7 @@ layout:
           - -122.42
           - 37.77
       height: 13
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       
       datasets:
         district: 

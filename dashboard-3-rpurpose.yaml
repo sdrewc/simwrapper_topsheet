@@ -50,7 +50,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/taz_rpurpose_h.csv
@@ -80,7 +80,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/taz_rpurpose_o.csv
@@ -109,7 +109,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/taz_rpurpose_d.csv
@@ -139,7 +139,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
           file: data/district_rpurpose_h.csv
@@ -171,7 +171,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
           file: data/district_rpurpose_o.csv
@@ -201,7 +201,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
           file: data/district_rpurpose_d.csv

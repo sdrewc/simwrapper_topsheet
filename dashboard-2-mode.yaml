@@ -80,7 +80,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/taz_mode.csv
@@ -109,7 +109,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/TAZ2454_clean.shp
+      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
           file: data/taz_mode_tab.csv
@@ -138,7 +138,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 
@@ -168,7 +168,7 @@ layout:
           - -122.42
           - 37.77
       height: 12
-      shapes: geo/Dist_15_Dissolve.shp
+      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 

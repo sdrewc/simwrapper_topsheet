@@ -1,0 +1,3 @@
+WORKING_FOLDER=X:\Projects\CHAMP7\Run25t_Market
+OUTPUT_FOLDER=X:\Projects\Miscellaneous\topsheet_simwrapper\test_final\simwrapper_topsheet\data
+SCRIPTS_FOLDER=C:\Users\wwang\Desktop\topsheet_push\simwrapper_topsheet\scripts
