@@ -1,0 +1,3 @@
+WORKING_FOLDER=X:\Projects\CHAMP7\Run25w_Market
+OUTPUT_FOLDER=X:\Projects\CHAMP7\Run25w_Market\dc_test\topsheet\data
+SCRIPTS_FOLDER=Y:\Users\Wei\topsheet

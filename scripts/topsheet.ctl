@@ -1,10 +1,6 @@
 # 
 [folder_setting]
 
-
-WORKING_FOLDER                   =  X:\Projects\CHAMP7\Run25t_Market
-OUTPUT_FOLDER                    =  X:\Projects\Miscellaneous\topsheet_simwrapper\test_final\simwrapper_topsheet\data
-
 SCRIPT_FOLDER                    =  Y:\Users\Wei\scripts
 # part 1 Landuse table
 

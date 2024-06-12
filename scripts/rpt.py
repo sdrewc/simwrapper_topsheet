@@ -8,12 +8,14 @@ from tables import open_file
 from utilTools import readEqvFile, modifyDistrictNameForMap, DataFrameToCustomHTML
 from pathlib import Path
 
-
-CTL_FILE = r"../topsheet.ctl"
+# Extract folder settings from the control file
+CTL_FILE = r"topsheet.ctl"
 config = configparser.ConfigParser()
 config.read(CTL_FILE)
-WORKING_FOLDER = Path(config["folder_setting"]["WORKING_FOLDER"])
-OUTPUT_FOLDER = Path(config["folder_setting"]["OUTPUT_FOLDER"])
+WORKING_FOLDER = os.getenv('WORKING_FOLDER')
+OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
+
+# Extract input file names from the control file
 
 rp_hh = os.path.join(
     WORKING_FOLDER, "daysim", "abm_output1", config["resident_purpose"]["RP_HH"]
@@ -35,6 +37,29 @@ area_eqv = os.path.join(WORKING_FOLDER, config["resident_purpose"]["AREA_EQV"])
 
 
 class ResidentPurposes:
+    """
+    Managing and calculating resident travel purposes and mode shares based on district data.
+
+    Attributes:
+    - RP_HH: A global variable set to 'rp_hh' indicating household data.
+    - RP_PERSON: A global variable set to 'rp_person' indicating individual person data.
+    - RP_TOUR: A global variable set to 'rp_tour' indicating tour data.
+    - RP_DISAG_TRIPS: A global variable set to 'rp_trips' indicating disaggregated trip data.
+    - RP_ROWS: A list of common travel purposes used in trip data analysis.
+    - RP_ROWS_TOUR: A list of travel purposes specific to tour data.
+    - RP_ROWS_SIMPLIFIED: A simplified list of travel purposes for summary outputs.
+    - RP_PURPOSES: A dictionary mapping purpose IDs to their descriptions.
+
+    Methods:
+    - __init__(eqvfile): Initializes the ResidentPurposes instance by reading district mappings from an equivalence file.
+    - getSimplifiedChampPurpose(row): Returns the simplified purpose of a trip based on its detailed purpose.
+    - getChampPurpose(row, tour): Returns the detailed purpose of a trip, with optional handling for tours.
+    - getTimePeriod(row, tour): Calculates the time period for a trip or tour based on start or end times.
+    - create_trip(): Processes and creates a structured DataFrame of trip data from various sources.
+    - getResidentPurposes(mode, timePeriod, sourceTaz): Aggregates trip data into purposes by district or TAZ.
+    - create_tour(): Processes and creates a structured DataFrame of tour data.
+    - getResidentPurposesTour(timePeriod): Returns the aggregated tour data by purpose and district for a specified time period.
+    """
     RP_HH = rp_hh
     RP_PERSON = rp_person
     RP_TOUR = rp_tour
@@ -358,7 +383,7 @@ class ResidentPurposes:
         self.purposes_tour[timePeriod] = pivot_df
         return pivot_df
 
-
+# 1. district_rpurpose_o.csv, 2. district_rpurpose_d.csv, 3. district_rpurpose_h.csv, 4. taz_rpurpose_o.csv, 5. taz_rpurpose_d.csv, 6. taz_rpurpose_h.csv, 
 rp = ResidentPurposes(dist_eqv)
 for tazSource in ["otaz", "dtaz", "hhtaz"]:
     for mapType in ["district", "taz"]:
@@ -371,6 +396,7 @@ for tazSource in ["otaz", "dtaz", "hhtaz"]:
         output_file = f"{mapType}_rpurpose_{tazSource[0]}.csv"
         df.to_csv(os.path.join(OUTPUT_FOLDER, output_file), index=False)
 
+# 7. purpose_all.csv, 8.purpose_dist_daily.md
 rp = ResidentPurposes(dist_eqv)
 purpose_dict = {}
 timeperiods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
@@ -391,6 +417,7 @@ sum_df = pd.DataFrame(
 
 # Concatenate the new DataFrame with the original DataFrame
 df = pd.concat([sum_df, purpose_df1])
+df = df.fillna(0)
 
 df.index.name = "Districts"
 df["All Purpose"] = df.apply(lambda row: sum(row), axis=1)
@@ -415,7 +442,7 @@ df = df.reset_index()
 df2md = DataFrameToCustomHTML([0, 1, 14, 15, 16], [0])
 df2md.generate_html(df, os.path.join(OUTPUT_FOLDER, "purpose_dist_daily.md"))
 
-
+# 9. purpose_tod.md, 10.purpose_tod.csv
 res = {}
 for tp in timeperiods[1:]:
     temp = purpose_dict[tp]
@@ -433,6 +460,7 @@ df2md = DataFrameToCustomHTML([], [0])
 df2md.generate_html(tod_df, os.path.join(OUTPUT_FOLDER, "purpose_tod.md"))
 tod_df.to_csv(os.path.join(OUTPUT_FOLDER, "purpose_tod.csv"))
 
+# 11.purpose_all_tour.csv 12. purpose_all_tour.md
 purpose_dict = {}
 timeperiods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
 for t in timeperiods:
@@ -461,6 +489,7 @@ purpose_df1 = purpose_df1.reset_index()
 df2md = DataFrameToCustomHTML([], [0])
 df2md.generate_html(purpose_df1, os.path.join(OUTPUT_FOLDER, "purpose_all_tour.md"))
 
+# 13. purpose_tod_tour.csv, 14.purpose_tod_tour.md
 res = {}
 for tp in timeperiods[1:]:
     temp = purpose_dict[tp]
