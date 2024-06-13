@@ -361,8 +361,7 @@ def get_mode_shares(place, mode_sums):
         ].sum()
     return [mode_shares[mode] for mode in sorted(mode_shares)]
 
-if __name__=='__main__':
-
+def convert_persontrips():
     # Convert MAT files to h5 files if missing
     h5_files = [AM_h5_file, PM_h5_file, MD_h5_file, EV_h5_file, EA_h5_file]
     missing_h5_files = []
@@ -390,10 +389,9 @@ if __name__=='__main__':
                 "PERSONTRIPS_PM",
             ]
             for mat_file in mat_file_names:
-                convert_mat_to_h5(WORKING_FOLDER, mat_file)
-
-    # Create temporary sumnum files
-
+                convert_mat_to_h5(WORKING_FOLDER, mat_file)    
+                
+def writeSummitSumFile(filename='summit_file.sum'):
     ftables = {
         "ftable1": AM_h5_file,
         "ftable2": MD_h5_file,
@@ -464,14 +462,21 @@ if __name__=='__main__':
             res.append(row)
         output.append(res)
 
-    with open(os.path.join(WORKING_FOLDER, "summit_file.sum"), "w") as file:
+    with open(filename, "w") as file:
         file.write("\n")
         for res in output:
             for row in res:
                 file.write("|".join(map(str, row)) + "\n")
             file.write("\n")
+            
+if __name__=='__main__':
 
-    # 1. Mode_tod.md, 2. Mode_tod.csv
+    # Modesum from persontrip tables
+    convert_persontrips()
+    
+    # Create temporary sumnum files
+    writeSummitSumFile(os.path.join(WORKING_FOLDER,'summit_file.sum'))
+    
     sumnums = readSummitSumFile(
         os.path.join(WORKING_FOLDER, "summit_file.sum"), tablekeys, numdists
     )
@@ -483,6 +488,7 @@ if __name__=='__main__':
     timePeriods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
 
     # Compute mode shares for each time period
+    # output: 1. Mode_tod.md, 2. Mode_tod.csv
     res = {}
     sf = {}
     for time in timePeriods:
@@ -550,6 +556,8 @@ if __name__=='__main__':
 
     mode_taz.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode.csv"), index=False)
 
+
+    # Modesum from trip list
     # filter dataframe for data processing
 
     necessary_columns = [
