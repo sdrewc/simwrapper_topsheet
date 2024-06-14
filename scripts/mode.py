@@ -230,95 +230,6 @@ def convert_mat_to_h5(directory, mat_file):
     else:
         print(f"Failed to convert {mat_file}.mat: {result.stderr}")
 
-# --------------------------------------------------------------------------------------------------
-# Create mode share tab data using different input datasets( config['mode_share']['RP_DISAG_TRIPS'] )
-def modeShare_tp(final_df, ocode, dcode, place, tp):
-    """
-    Calculates the mode shares for different transportation modes for a given place and time period.
-
-    Parameters:
-    - final_df (DataFrame): The DataFrame containing travel data.
-    - ocode (str): Column name in `final_df` representing the origin code.
-    - dcode (str): Column name in `final_df` representing the destination code.
-    - place (int or str): The specific place code to filter the data by origin or destination.
-    - tp (str): The time period for which to calculate mode shares. If "Daily", it includes all time periods.
-
-    Returns:
-    - list: A list containing summed travel expenditures for auto, transit, walk, bicycle, and TNC modes.
-
-    This function filters the DataFrame based on the specified time period and place. It then calculates
-    the total travel expenditures (represented by the 'trexpfac' column) for each transportation mode
-    where the origin or destination matches the specified place. The modes are categorized as follows:
-    - Auto: Modes 3, 4, and 5
-    - Transit: Mode 6
-    - Walk: Mode 1
-    - Bicycle: Mode 2
-    - TNC: Mode 9
-    """
-    if tp != "Daily":
-        df = final_df[final_df["tp"] == tp]
-    else:
-        df = final_df
-    auto = df[
-        ((df[ocode] == place) | (df[dcode] == place)) & (df["mode"].isin([3, 4, 5]))
-    ]["trexpfac"].sum()
-    transit = df[
-        ((df[ocode] == place) | (df[dcode] == place)) & (df["mode"].isin([6]))
-    ]["trexpfac"].sum()
-    ped = df[((df[ocode] == place) | (df[dcode] == place)) & (df["mode"].isin([1]))][
-        "trexpfac"
-    ].sum()
-    bike = df[((df[ocode] == place) | (df[dcode] == place)) & (df["mode"].isin([2]))][
-        "trexpfac"
-    ].sum()
-    tnc = df[((df[ocode] == place) | (df[dcode] == place)) & (df["mode"].isin([9]))][
-        "trexpfac"
-    ].sum()
-    return [auto, transit, ped, bike, tnc]
-
-
-def modeShareSF_tp(final_df, ocode, dcode, places, tp):
-    """
-    Calculates the mode shares for different transportation modes for specified places and a given time period.
-
-    Parameters:
-    - final_df (DataFrame): The DataFrame containing travel data.
-    - ocode (str): Column name in `final_df` representing the origin code.
-    - dcode (str): Column name in `final_df` representing the destination code.
-    - places (list): A list of places (codes) to filter the data by origin or destination.
-    - tp (str): The time period for which to calculate mode shares. If "Daily", includes all time periods.
-
-    Returns:
-    - list: A list containing summed travel expenditures for auto, transit, walk, bicycle, and TNC modes.
-
-    The function first filters the DataFrame based on the specified time period and checks if either the origin
-    or destination matches any of the specified places. It then calculates the total travel expenditures
-    (represented by 'trexpfac' column) for each transportation mode where the travel is related to the specified
-    places. The modes are categorized as follows:
-    - Auto: Modes 3, 4, and 5
-    - Transit: Mode 6
-    - Walk: Mode 1
-    - Bicycle: Mode 2
-    - TNC: Mode 9
-    """
-    # Filter the dataframe for the time period if it's not 'Daily'
-    if tp != "Daily":
-        df = final_df[final_df["tp"] == tp]
-    else:
-        df = final_df
-
-    # Check if ocode or dcode is in the list of places
-    df = df[df[ocode].isin(places) | df[dcode].isin(places)]
-
-    # Calculate sum of 'trexpfac' for different modes
-    auto = df[df["mode"].isin([3, 4, 5])]["trexpfac"].sum()
-    transit = df[df["mode"].isin([6])]["trexpfac"].sum()
-    ped = df[df["mode"].isin([1])]["trexpfac"].sum()
-    bike = df[df["mode"].isin([2])]["trexpfac"].sum()
-    tnc = df[df["mode"].isin([9])]["trexpfac"].sum()
-
-    return [auto, transit, ped, bike, tnc]
-
 def convert_persontrips():
     # Convert MAT files to h5 files if missing
     h5_files = [AM_h5_file, PM_h5_file, MD_h5_file, EV_h5_file, EA_h5_file]
@@ -349,7 +260,29 @@ def convert_persontrips():
             for mat_file in mat_file_names:
                 convert_mat_to_h5(WORKING_FOLDER, mat_file)    
                 
-def writeSummitSumFile(filename='summit_file.sum'):
+def mode_share_from_trip_list(df, o_label, d_label, idx_label, scale=100.0):
+    '''
+    o_lable: taz or district origin field
+    d_lable: taz or district destination field
+    idx_label: name for geography; taz or district
+    '''
+    df = (final_df.pivot_table(index=o_label, columns='mode', values='trexpfac', aggfunc='sum') + 
+                final_df.pivot_table(index=d_label, columns='mode', values='trexpfac', aggfunc='sum'))
+    df.index.name=idx_label
+    df[3] = df[3] + df[4] + df[5] # collapse auto modes
+    df[6] = df[6] + df[8] # collapse transit and school bus
+    df = (df.drop(columns=[4, 5, 8])
+                        .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
+    # constructed with transposes due to pandas bug dividing along rows
+    df.T.divide(df.T.sum()).T * scale
+    return df
+            
+if __name__=='__main__':
+
+    # Modesum from persontrip tables
+    convert_persontrips()
+    
+    # Create temporary sumnum files
     ftables = {
         "ftable1": AM_h5_file,
         "ftable2": MD_h5_file,
@@ -379,7 +312,6 @@ def writeSummitSumFile(filename='summit_file.sum'):
             name = "t{}{}".format(i, j)
             value = tables["ftable{}{}".format(i, j)]
             locals()[name] = value
-
     # sum them up
     t1 = t11 + t21 + t31 + t41 + t51
     t2 = t12 + t22 + t32 + t42 + t52
@@ -420,20 +352,13 @@ def writeSummitSumFile(filename='summit_file.sum'):
             res.append(row)
         output.append(res)
 
-    with open(filename, "w") as file:
+    with open(os.path.join(WORKING_FOLDER,'summit_file.sum'), "w") as file:
         file.write("\n")
         for res in output:
             for row in res:
                 file.write("|".join(map(str, row)) + "\n")
-            file.write("\n")
-            
-if __name__=='__main__':
-
-    # Modesum from persontrip tables
-    convert_persontrips()
-    
-    # Create temporary sumnum files
-    writeSummitSumFile(os.path.join(WORKING_FOLDER,'summit_file.sum'))
+            file.write("\n")    
+    #writeSummitSumFile(os.path.join(WORKING_FOLDER,'summit_file.sum'))
     
     sumnums = readSummitSumFile(
         os.path.join(WORKING_FOLDER, "summit_file.sum"), tablekeys, numdists
@@ -552,76 +477,47 @@ if __name__=='__main__':
     cols_to_drop = [col for col in merged_df.columns if col.endswith("_next")]
     merged_df.drop(cols_to_drop, axis=1, inplace=True)
     df_cleaned = df.drop(indices_to_delete)
+    
     final_df = pd.concat([merged_df, df_cleaned], ignore_index=True)
-    bins = [0, 180, 540, 780, 1080, 1440]
-    labels = ["EA", "AM", "MD", "PM", "EV"]
-
-    final_df["tp"] = pd.cut(final_df["deptm"], bins=bins, labels=labels, right=False)
-
-
-    distnames, distToTaz, tazToDist, numdists = readEqvFile(AREA_EQV)
-    final_df["o3code"] = final_df["otaz"].map(lambda x: tazToDist[x][0])
-    final_df["d3code"] = final_df["dtaz"].map(lambda x: tazToDist[x][0])
+    final_df['tp'] = 'EV'
+    final_df.loc[final_df['deptm'].between(180,360),'tp'] = 'EA'
+    final_df.loc[final_df['deptm'].between(360,540),'tp'] = 'AM'
+    final_df.loc[final_df['deptm'].between(540,930),'tp'] = 'MD'
+    final_df.loc[final_df['deptm'].between(930,1110),'tp'] = 'PM'
 
     distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
-    final_df["o15code"] = final_df["otaz"].map(lambda x: tazToDist[x][0])
-    final_df["d15code"] = final_df["dtaz"].map(lambda x: tazToDist[x][0])
-
-
+    final_df["odist"] = final_df["otaz"].map(lambda x: tazToDist[x][0])
+    final_df["ddist"] = final_df["dtaz"].map(lambda x: tazToDist[x][0])
     timePeriods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
-    districts = {}
 
-    # 7.Mode_tod_tab_district.md, 8.Mode_tod_tab_district.csv, 9. district_mode_tod_tab_map.csv
-    for pc in distnames.keys():
-        percentage = modeShare_tp(final_df, "o15code", "d15code", pc, "Daily")
-        tmp_sum = sum(percentage)
-        for j in range(len(percentage)):
-            percentage[j] = round(100 * percentage[j] / tmp_sum, 1)
-        districts[pc] = percentage
-
-    df = pd.DataFrame(districts).T
-    df.columns = ["Auto", "Transit", "Walk", "Bike", "TNC"]
-    df.index.name = "District NO"
-    df["District"] = df.apply(lambda row: distnames[row.name], axis=1)
-    df = df.loc[:, ["District", "Auto", "Transit", "Walk", "Bike", "TNC"]]
+    # 7.dist15_mode_src_trip_list.md, 8.dist15_mode_src_trip_list.csv, 9. district_sf_mode_by_tp_src_trip_list_map.csv
+    df = mode_share_from_trip_list(final_df,'odist','ddist','District',scale=100.0)
+    df.index = df.index.map(lambda x: distnames[x])
 
     df = df.reset_index()
     df2html = DataFrameToCustomHTML([], [0, 1])
-    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "Mode_tod_tab_district.md"), True)
-    df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod_tab_district.csv"), index=False)
+    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "district_mode_src_trip_list.md"), True)
+    df.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_src_trip_list.csv"), index=False)
 
-    df = modifyDistrictNameForMap(df, "District")
-    df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_tod_tab_map.csv"), index=False)
-
-    # 10. Mode_tod_tab.md, 11.Mode_tod_tab.csv"
+    # 10. sf_mode_by_tp_src_trip_list.md, 11.sf_mode_by_tp_src_trip_list.csv"
     sf = {}
-    for tp in timePeriods:
-        percentage = modeShareSF_tp(final_df, "o3code", "d3code", [1, 2], tp)
-        tmp_sum = sum(percentage)
-        for j in range(len(percentage)):
-            percentage[j] = round(100 * percentage[j] / tmp_sum, 1)
-        sf[tp] = percentage
-    df = pd.DataFrame(sf).T
-    df.columns = ["Auto", "Transit", "Walk", "Bike", "TNC"]
-    df.index.name = "TOD"
+    df = (final_df.loc[final_df['otaz'].le(981) | final_df['dtaz'].le(981)]
+                  .pivot_table(index='tp', columns='mode', values='trexpfac', aggfunc='sum'))      
+    df[3] = df[3] + df[4] + df[5] # collapse auto modes
+    df[6] = df[6] + df[8] # collapse transit and school bus
+    df = (df.drop(columns=[4, 5, 8])
+            .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
+    df.loc['Daily',:] = df.sum()
+    df = df.T.divide(df.T.sum()).T
     df = df.reset_index()
 
     df2html = DataFrameToCustomHTML([], [0])
-    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "Mode_tod_tab.md"), True)
-    df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod_tab.csv"), index=False)
+    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "sf_mode_by_tp_src_trip_list.md"), True)
+    df.to_csv(os.path.join(OUTPUT_FOLDER, "sf_mode_by_tp_src_trip_list.csv"), index=False)
 
     # 12. taz_mode_tab.csv
-    taz_mode = (final_df.pivot_table(index='otaz', columns='mode', values='trexpfac', aggfunc='sum') + 
-                final_df.pivot_table(index='dtaz', columns='mode', values='trexpfac', aggfunc='sum'))
-    taz_mode.index.name='TAZ'
-    taz_mode[3] = taz_mode[3] + taz_mode[4] + taz_mode[5] # collapse auto modes
-    taz_mode[6] = taz_mode[6] + taz_mode[8] # collapse transit and school bus
-    taz_mode = (taz_mode.drop(columns=[4, 5, 8])
-                        .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
-    taz_mode = taz_mode.divide(taz_mode.sum(axis=1))
+    taz_mode = mode_share_from_trip_list(final_df,'otaz','dtaz','TAZ',scale=100.0)
     taz_mode.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode_src_trip_list.csv"))
 
-    # constructed with transposes due to pandas bug dividing along rows
-    taz_mode.T.divide(taz_mode.T.sum()).T * 100.0
     # delete the temp file
     os.remove(os.path.join(WORKING_FOLDER, "summit_file.sum"))
