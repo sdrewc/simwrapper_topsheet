@@ -42,7 +42,7 @@ rp_trips = os.path.join(
 MS_SUMMIT_CTL = {"RPM9": MS_SUMMIT_RPM9_CTL, "champ": "MS_SUMMIT_CHAMP_CTL"}
 MS_AUTO = "Auto"
 MS_TRANSIT = "Transit"
-MS_PED = "Pedestrian"
+MS_PED = "Walk"
 MS_BIKE = "Bike"
 MS_TNC = "TNC"
 MS_ROWS = {
@@ -115,7 +115,7 @@ def summitToModeSumToOrFrom(
     within:     True for To,From or Within; True for just To or From
         Returns
     timePeriod: "Daily", "AM", "MD", "PM", "EV", or "EA" (this is from the summit ctl)
-    modesum: Auto|Transit|Pedestrian|Bike|Total -> list of trips for each dist for that mode
+    modesum: Auto|Transit|Walk|Bike|Total -> list of trips for each dist for that mode
     """
     modesum = {}
     for mode in MS_ROWS[runtype]:
@@ -244,14 +244,14 @@ def modeShare_tp(final_df, ocode, dcode, place, tp):
     - tp (str): The time period for which to calculate mode shares. If "Daily", it includes all time periods.
 
     Returns:
-    - list: A list containing summed travel expenditures for auto, transit, pedestrian, bicycle, and TNC modes.
+    - list: A list containing summed travel expenditures for auto, transit, walk, bicycle, and TNC modes.
 
     This function filters the DataFrame based on the specified time period and place. It then calculates
     the total travel expenditures (represented by the 'trexpfac' column) for each transportation mode
     where the origin or destination matches the specified place. The modes are categorized as follows:
     - Auto: Modes 3, 4, and 5
     - Transit: Mode 6
-    - Pedestrian: Mode 1
+    - Walk: Mode 1
     - Bicycle: Mode 2
     - TNC: Mode 9
     """
@@ -289,7 +289,7 @@ def modeShareSF_tp(final_df, ocode, dcode, places, tp):
     - tp (str): The time period for which to calculate mode shares. If "Daily", includes all time periods.
 
     Returns:
-    - list: A list containing summed travel expenditures for auto, transit, pedestrian, bicycle, and TNC modes.
+    - list: A list containing summed travel expenditures for auto, transit, walk, bicycle, and TNC modes.
 
     The function first filters the DataFrame based on the specified time period and checks if either the origin
     or destination matches any of the specified places. It then calculates the total travel expenditures
@@ -297,7 +297,7 @@ def modeShareSF_tp(final_df, ocode, dcode, places, tp):
     places. The modes are categorized as follows:
     - Auto: Modes 3, 4, and 5
     - Transit: Mode 6
-    - Pedestrian: Mode 1
+    - Walk: Mode 1
     - Bicycle: Mode 2
     - TNC: Mode 9
     """
@@ -318,48 +318,6 @@ def modeShareSF_tp(final_df, ocode, dcode, places, tp):
     tnc = df[df["mode"].isin([9])]["trexpfac"].sum()
 
     return [auto, transit, ped, bike, tnc]
-
-
-def get_mode_shares(place, mode_sums):
-    """
-    Calculates the travel expenditure sums for various transportation modes at a specific place.
-
-    Parameters:
-    - place (int or str): The specific place code to filter the data by origin or destination.
-    - mode_sums (DataFrame): The DataFrame containing mode and travel expenditure data.
-
-    Returns:
-    - list: A list of sums of travel expenditures for the specified modes in the order of mode codes.
-
-    This function filters the input DataFrame to include only rows where the origin or destination matches
-    the specified place. It then initializes a dictionary to keep track of travel expenditures for each
-    transportation mode. The function iterates over each mode, calculating the total travel expenditures for
-    each and returning these values in a list ordered by mode codes.
-
-    Mode mapping:
-    - 1: Pedestrian
-    - 2: Bicycle
-    - 3, 4, 5: Auto (can be merged if they represent similar auto categories)
-    - 6: Transit
-    - 9: TNC (Transport Network Company)
-    """
-    relevant_rows = mode_sums[
-        (mode_sums["otaz"] == place) | (mode_sums["dtaz"] == place)
-    ]
-    mode_shares = {
-        3: 0,  # Auto
-        4: 0,  # Could merge with auto if they are the same
-        5: 0,  # Same as above
-        6: 0,  # Transit
-        1: 0,  # Ped
-        2: 0,  # Bike
-        9: 0,  # TNC
-    }
-    for mode in mode_shares.keys():
-        mode_shares[mode] = relevant_rows[relevant_rows["mode"] == mode][
-            "trexpfac"
-        ].sum()
-    return [mode_shares[mode] for mode in sorted(mode_shares)]
 
 def convert_persontrips():
     # Convert MAT files to h5 files if missing
@@ -409,7 +367,7 @@ def writeSummitSumFile(filename='summit_file.sum'):
                 tables[ftable + name] = table
 
     for i in range(1, 6):
-        # 1-8 are Auto, Transit, Pedestrian, Bike tables
+        # 1-8 are Auto, Transit, Walk, Bike tables
         for j in range(1, 9):
             name = "t{}{}".format(i, j)
             value = tables["ftable{}{}".format(i, j)]
@@ -547,7 +505,7 @@ if __name__=='__main__':
     mode_taz = pd.DataFrame()
     mode_taz["Auto"] = T_taz_df.iloc[:, 1:4].sum(axis=1)
     mode_taz["Transit"] = T_taz_df.iloc[:, 6:8].sum(axis=1)
-    mode_taz["Pedestrian"] = T_taz_df.iloc[:, 4:5].sum(axis=1)
+    mode_taz["Walk"] = T_taz_df.iloc[:, 4:5].sum(axis=1)
     mode_taz["Bike"] = T_taz_df.iloc[:, 5:6].sum(axis=1)
     mode_taz["TNC"] = T_taz_df.iloc[:, 9:11].sum(axis=1)
 
@@ -622,10 +580,10 @@ if __name__=='__main__':
         districts[pc] = percentage
 
     df = pd.DataFrame(districts).T
-    df.columns = ["Auto", "Transit", "Pedestrian", "Bike", "TNC"]
+    df.columns = ["Auto", "Transit", "Walk", "Bike", "TNC"]
     df.index.name = "District NO"
     df["District"] = df.apply(lambda row: distnames[row.name], axis=1)
-    df = df.loc[:, ["District", "Auto", "Transit", "Pedestrian", "Bike", "TNC"]]
+    df = df.loc[:, ["District", "Auto", "Transit", "Walk", "Bike", "TNC"]]
 
     df = df.reset_index()
     df2html = DataFrameToCustomHTML([], [0, 1])
@@ -644,7 +602,7 @@ if __name__=='__main__':
             percentage[j] = round(100 * percentage[j] / tmp_sum, 1)
         sf[tp] = percentage
     df = pd.DataFrame(sf).T
-    df.columns = ["Auto", "Transit", "Pedestrian", "Bike", "TNC"]
+    df.columns = ["Auto", "Transit", "Walk", "Bike", "TNC"]
     df.index.name = "TOD"
     df = df.reset_index()
 
@@ -652,32 +610,18 @@ if __name__=='__main__':
     df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "Mode_tod_tab.md"), True)
     df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod_tab.csv"), index=False)
 
-    comb_arr = []
-    for j in range(1, numdists + 1):
-        comb_arr.append([i - 1 for i in distToTaz[j]])
-    flatten_comb_arr = [item for sublist in comb_arr for item in sublist]
-
-    mode_sums = final_df.groupby(["otaz", "dtaz", "mode"])["trexpfac"].sum().reset_index()
-
     # 12. taz_mode_tab.csv
-    output = [get_mode_shares(taz, mode_sums) for taz in flatten_comb_arr]
-    final = []
-    for i in range(len(output)):
-        res = []
-        auto = output[i][0] + output[i][1] + output[i][2]
-        res.append(auto)
-        res.append(output[i][3])
-        res.append(output[i][4])
-        res.append(output[i][5])
-        res.append(output[i][6])
-        res.append(flatten_comb_arr[i])
-        final.append(res)
-    taz_df = pd.DataFrame(data=final)
-    row_sums = taz_df.iloc[:, :-1].sum(axis=1)
-    for col in taz_df.columns[:-1]:  # Exclude the last column
-        taz_df[col] = 100 * taz_df[col] / row_sums
-    taz_df.columns = ["Auto", "Transit", "Pedestrian", "Bike", "TNC", "Taz"]
-    taz_df.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode_tab.csv"), index=False)
+    taz_mode = (final_df.pivot_table(index='otaz', columns='mode', values='trexpfac', aggfunc='sum') + 
+                final_df.pivot_table(index='dtaz', columns='mode', values='trexpfac', aggfunc='sum'))
+    taz_mode.index.name='TAZ'
+    taz_mode[3] = taz_mode[3] + taz_mode[4] + taz_mode[5] # collapse auto modes
+    taz_mode[6] = taz_mode[6] + taz_mode[8] # collapse transit and school bus
+    taz_mode = (taz_mode.drop(columns=[4, 5, 8])
+                        .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
+    taz_mode = taz_mode.divide(taz_mode.sum(axis=1))
+    taz_mode.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode_src_trip_list.csv"))
 
+    # constructed with transposes due to pandas bug dividing along rows
+    taz_mode.T.divide(taz_mode.T.sum()).T * 100.0
     # delete the temp file
     os.remove(os.path.join(WORKING_FOLDER, "summit_file.sum"))
