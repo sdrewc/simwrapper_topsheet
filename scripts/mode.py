@@ -1,6 +1,6 @@
 import h5py
 import pandas as pd
-import os
+import sys, os
 import subprocess
 import configparser
 from utilTools import (
@@ -10,6 +10,9 @@ from utilTools import (
 )
 from pathlib import Path
 
+sys.path.insert(0, os.path.join(os.environ['CHAMPVERSION'],'lib'))
+from Lookups import Lookups, MAX_SF_COUNTY_ZONE
+
 # Extract folder settings from the control file
 CTL_FILE = r"topsheet.ctl"
 config = configparser.ConfigParser()
@@ -18,11 +21,7 @@ WORKING_FOLDER = os.getenv('WORKING_FOLDER')
 OUTPUT_FOLDER = os.getenv('OUTPUT_FOLDER')
 
 # Extract input file names from the control file
-MS_SUMMIT_RPM9_CTL = os.path.join(
-    WORKING_FOLDER, config["mode_share"]["MS_SUMMIT_RPM9_CTL"]
-)
 DIST_EQV = os.path.join(WORKING_FOLDER, config["mode_share"]["DIST_EQV"])
-AREA_EQV = os.path.join(WORKING_FOLDER, config["mode_share"]["AREA_EQV"])
 AM_h5_file = os.path.join(WORKING_FOLDER, config["mode_share"]["AM_h5_file"])
 MD_h5_file = os.path.join(WORKING_FOLDER, config["mode_share"]["MD_h5_file"])
 PM_h5_file = os.path.join(WORKING_FOLDER, config["mode_share"]["PM_h5_file"])
@@ -38,181 +37,8 @@ rp_trips = os.path.join(
     WORKING_FOLDER, "daysim", "abm_output1", config["mode_share"]["RP_DISAG_TRIPS"]
 )
 
-# Define constants for mode share categories
-MS_SUMMIT_CTL = {"RPM9": MS_SUMMIT_RPM9_CTL, "champ": "MS_SUMMIT_CHAMP_CTL"}
-MS_AUTO = "Auto"
-MS_TRANSIT = "Transit"
-MS_PED = "Walk"
-MS_BIKE = "Bike"
-MS_TNC = "TNC"
-MS_ROWS = {
-    "RPM9": [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC],
-    "champ": [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC],
-}
-
-
-def readSummitSumFile(sumfile, tablekeys, numdists):
-    """Reads the given summit sumfile and returns
-    sumnums: tablekey -> 2d list of number strings (numdist x numdist)
-    """
-    f = open(sumfile)
-    sumtxt = f.read()
-    f.close()
-
-    lines = sumtxt.split("\n")
-    sumnums = {}
-
-    for key in tablekeys:
-        sumnums[key] = []
-        start = (key - 1) * (numdists + 1) + 1
-        # print(start)
-        for lineno in range(start, start + numdists):
-            sumnums[key].append(lines[lineno].split("|"))
-    return sumnums
-
-
-def scaleSummitNums(sumnums):
-    """Scale the unscaled and make everything a number.  Return floats."""
-    for key in sumnums.keys():
-        for i1 in range(0, len(sumnums[key])):
-            for i2 in range(0, len(sumnums[key][i1])):
-                sumnums[key][i1][i2] = float(sumnums[key][i1][i2])
-
-    return sumnums
-
-
-def sumRowAndCol(squarelist, row, col, includeIntersection=True, cumulative=True):
-    """What it sounds like"""
-    sum = 0
-    if cumulative == False:
-        intersection = squarelist[row][col]
-        for r in range(0, len(squarelist)):
-            sum = sum + squarelist[r][col]
-        for c in range(0, len(squarelist)):
-            sum = sum + squarelist[row][c]
-        # we double counted this one
-        sum = sum - intersection
-        if includeIntersection == False:
-            sum = sum - intersection
-    else:
-        sum = 0
-        # rows first
-        for r in range(0, row + 1):
-            for c in range(0, len(squarelist)):
-                sum = sum + squarelist[r][c]
-        # cols
-        for c in range(0, col + 1):
-            for r in range(row + 1, len(squarelist)):
-                sum = sum + squarelist[r][c]
-    return sum
-
-
-def summitToModeSumToOrFrom(
-    sumnums, numdists, runtype, within=True, culmulative=True, timePeriod="Daily"
-):
-    """Normalizes summit output to Mode share numbers for to/from (and optionally within)
-    runtype:    'champ' or 'RPM9'
-    within:     True for To,From or Within; True for just To or From
-        Returns
-    timePeriod: "Daily", "AM", "MD", "PM", "EV", or "EA" (this is from the summit ctl)
-    modesum: Auto|Transit|Walk|Bike|Total -> list of trips for each dist for that mode
-    """
-    modesum = {}
-    for mode in MS_ROWS[runtype]:
-        modesum[mode] = []
-    base = -1
-    # base = 0
-    if timePeriod == "Daily":
-        base = 0
-    elif timePeriod == "AM":
-        base = 10
-    elif timePeriod == "MD":
-        base = 20
-    elif timePeriod == "PM":
-        base = 30
-    elif timePeriod == "EV":
-        base = 40
-    elif timePeriod == "EA":
-        base = 50
-    else:
-        print("Don't understand timePeriod: " + timePeriod)
-        return modesum
-    if runtype == "RPM9":
-        for dist in range(0, numdists):
-            # TO NOte we have changed the cummulative as False to not have a cummulative sum for districts
-            # Auto, Auto toll, & Auto Paid
-            modesum[MS_AUTO].append(
-                sumRowAndCol(sumnums[base + 1], dist, dist, within, culmulative)
-                + sumRowAndCol(sumnums[base + 2], dist, dist, within, culmulative)
-                + sumRowAndCol(sumnums[base + 3], dist, dist, within, culmulative)
-            )
-            # Walk-To-Transit & Drivebase+-To-Transit
-            modesum[MS_TRANSIT].append(
-                sumRowAndCol(sumnums[base + 6], dist, dist, within, culmulative)
-                + sumRowAndCol(sumnums[base + 7], dist, dist, within, culmulative)
-            )
-            modesum[MS_PED].append(
-                sumRowAndCol(sumnums[base + 4], dist, dist, within, culmulative)
-            )
-            modesum[MS_BIKE].append(
-                sumRowAndCol(sumnums[base + 5], dist, dist, within, culmulative)
-            )
-            modesum["TNC"].append(
-                sumRowAndCol(sumnums[base + 9], dist, dist, within, culmulative)
-                + sumRowAndCol(sumnums[base + 10], dist, dist, within, culmulative)
-            )
-    elif runtype == "champ":
-        for dist in range(0, numdists):
-            modesum[MS_AUTO].append(
-                sumRowAndCol(sumnums[base + 1], dist, dist, within, True)
-            )
-            modesum[MS_TRANSIT].append(
-                sumRowAndCol(sumnums[base + 2], dist, dist, within, True)
-            )
-            modesum[MS_PED].append(
-                sumRowAndCol(sumnums[base + 3], dist, dist, within, True)
-            )
-            modesum[MS_BIKE].append(
-                sumRowAndCol(sumnums[base + 4], dist, dist, within, True)
-            )
-    else:
-        print("Could not calculate mode share for unknown runtype " + runtype)
-    return modesum
-
-
-def modeSumToModeShare(modesum):
-    """modesum numbers -> percentages for each dist"""
-    total = []
-    modeshare = {}
-    for mode in modesum.keys():
-        modeshare[mode] = []
-    for dist in range(0, len(modesum[mode])):
-        total.append(0)
-        for mode in modesum.keys():
-            modeshare[mode].append(0.0)
-            total[dist] = total[dist] + modesum[mode][dist]
-        for mode in modesum.keys():
-            num = round(100 * float(modesum[mode][dist]) / float(total[dist]), 1)
-            modeshare[mode][dist] = num
-    return modeshare
-
-
-def extract_second_element(x):
-    if isinstance(x, list) and len(x) >= 2:
-        return x[1]
-    return None
-
-
-def modeSumToModeShareSF(modesum):
-    """modesum numbers -> percentages for SF"""
-    modeshare = {}
-    for mode in modesum.keys():
-        modeshare[mode] = sum(modesum[mode][:12])
-    tempSum = sum(modeshare.values())
-    for mode in modesum.keys():
-        modeshare[mode] = round(100 * modeshare[mode] / tempSum, 1)
-    return modeshare
-
+TIMEPERIODS = ['EA','AM','MD','PM','EV']
+MODES = ['Auto','Transit','Walk','Bike','TNC']
 
 def convert_mat_to_h5(directory, mat_file):
     # Construct the full paths to the input and output files
@@ -260,7 +86,7 @@ def convert_persontrips():
             for mat_file in mat_file_names:
                 convert_mat_to_h5(WORKING_FOLDER, mat_file)    
                 
-def mode_share_from_trip_list(df, o_label, d_label, idx_label, scale=100.0):
+def mode_share_from_trip_list(df, o_label, d_label, idx_label, scale=1.0):
     '''
     o_lable: taz or district origin field
     d_lable: taz or district destination field
@@ -274,186 +100,105 @@ def mode_share_from_trip_list(df, o_label, d_label, idx_label, scale=100.0):
     df = (df.drop(columns=[4, 5, 8])
                         .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
     # constructed with transposes due to pandas bug dividing along rows
-    df.T.divide(df.T.sum()).T * scale
+    df = df.T.divide(df.T.sum()).T * scale
     return df
             
 if __name__=='__main__':
 
-    # Modesum from persontrip tables
+
+    # TRIP TABLE SUMMARIES
     convert_persontrips()
     
-    # Create temporary sumnum files
-    ftables = {
-        "ftable1": AM_h5_file,
-        "ftable2": MD_h5_file,
-        "ftable3": PM_h5_file,
-        "ftable4": EV_h5_file,
-        "ftable5": EA_h5_file,
-    }
-    tables = {}
-    # store all tables in the "tables" dictionary
-    for ftable, filename in ftables.items():
-        with h5py.File(filename, "r") as f:
-            for name in f.keys():
-                table = f[name][...]  # get all the dataset
-                # so the first table in "ftable1 would be ftable11"
-                tables[ftable + name] = table
-
-    for i in range(1, 6):
-        # 1-8 are Auto, Transit, Walk, Bike tables
-        for j in range(1, 9):
-            name = "t{}{}".format(i, j)
-            value = tables["ftable{}{}".format(i, j)]
-            # store all tables in the local dictionary,
-            # so the variable t11 would be the first table in "ftable1"
-            locals()[name] = value
-        # 19, 20 are TNC tables
-        for j in range(19, 21):
-            name = "t{}{}".format(i, j)
-            value = tables["ftable{}{}".format(i, j)]
-            locals()[name] = value
-    # sum them up
-    t1 = t11 + t21 + t31 + t41 + t51
-    t2 = t12 + t22 + t32 + t42 + t52
-    t3 = t13 + t23 + t33 + t43 + t53
-    t4 = t14 + t24 + t34 + t44 + t54
-    t5 = t15 + t25 + t35 + t45 + t55
-    t6 = t16 + t26 + t36 + t46 + t56
-    t7 = t17 + t27 + t37 + t47 + t57
-    t8 = t18 + t28 + t38 + t48 + t58
-    t9 = t119 + t219 + t319 + t419 + t519
-    t10 = t120 + t220 + t320 + t420 + t520
-
-    tablekeys = [i for i in range(1, 61)]
-
-    distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
-
-    distnameToTaz = {}
-    for i in range(1, numdists + 1):
-        distnameToTaz[distnames[i]] = [j - 1 for j in distToTaz[i]]
-    output = []
-    for t in [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10]:
-        res = []
-        for start in list(distnameToTaz.values()):
-            row = []
-            for end in list(distnameToTaz.values()):
-                row.append(t[start][:, end].sum())
-            res.append(row)
-        output.append(res)
-    table_list = [
-        str(a) + str(b) for a in range(1, 6) for b in [i for i in range(1, 9)] + [19, 20]
-    ]
-    for x in table_list:
-        res = []
-        for start in list(distnameToTaz.values()):
-            row = []
-            for end in list(distnameToTaz.values()):
-                row.append(tables[f"ftable{x}"][start][:, end].sum())
-            res.append(row)
-        output.append(res)
-
-    with open(os.path.join(WORKING_FOLDER,'summit_file.sum'), "w") as file:
-        file.write("\n")
-        for res in output:
-            for row in res:
-                file.write("|".join(map(str, row)) + "\n")
-            file.write("\n")    
-    #writeSummitSumFile(os.path.join(WORKING_FOLDER,'summit_file.sum'))
     
-    sumnums = readSummitSumFile(
-        os.path.join(WORKING_FOLDER, "summit_file.sum"), tablekeys, numdists
-    )
+    distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
+    taz_to_dist = {taz: dist[0] for taz, dist in tazToDist.items()}
+    
+    tp_to_name = {
+        "AM": AM_h5_file,
+        "MD": MD_h5_file,
+        "PM": PM_h5_file,
+        "EV": EV_h5_file,
+        "EA": EA_h5_file,
+    }
+    tazmats = {tp: {} for tp in TIMEPERIODS}
+    distmats = {tp: {} for tp in TIMEPERIODS}
+    matrix_mode_num_to_name = {1: 'Auto', 2: 'Auto', 3: 'Auto', # auto, auto toll, auto paid
+                               4: 'Walk', 5: 'Bike', 6: 'Transit', 7: 'Transit', # walk, bike, walk-transit, drive-transit
+                               20: 'TNC'}
 
-    # Scale the summit numbers
-    sumnums = scaleSummitNums(sumnums)
+    # store all tables in the "tables" dictionary
+    for tp, filename in tp_to_name.items():
+        with h5py.File(filename, "r") as f:
+            for num, name in matrix_mode_num_to_name.items():
+                tazmat = pd.DataFrame(f[str(num)][...])
+                tazmat.index = tazmat.index + 1
+                tazmat.columns = tazmat.columns + 1
+                
+                # get just the tazs that belong to districts  TODO: CHECK THIS HANDLES EXTERNALS
+                distmat = tazmat.loc[taz_to_dist.keys(),taz_to_dist.keys()]
+                distmat.rename(index={x: taz_to_dist[x] for x in distmat.columns},
+                               columns={x: taz_to_dist[x] for x in distmat.columns},
+                               inplace=True)
+                distmat = distmat.groupby(distmat.index).sum().T.groupby(distmat.index).sum().T
+                
+                if not name in tazmats[tp]:
+                    tazmats[tp][name] = tazmat  # get all the dataset
+                else:
+                    tazmats[tp][name] += tazmat  # get all the dataset
 
-    # Define time periods of interest
-    timePeriods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
+                if not name in distmats[tp]:
+                    distmats[tp][name] = distmat  # get all the dataset
+                else:
+                    distmats[tp][name] += distmat  # get all the dataset
 
-    # Compute mode shares for each time period
-    # output: 1. Mode_tod.md, 2. Mode_tod.csv
-    res = {}
-    sf = {}
-    for time in timePeriods:
-        # Convert summit data to mode sums and then to mode shares
-        # print(time)
-        modesum = summitToModeSumToOrFrom(
-            sumnums, numdists, "RPM9", True, False, timePeriod=time
-        )
-        res[time] = modeSumToModeShare(modesum)
-        sf[time] = modeSumToModeShareSF(modesum)
-
-    df = pd.DataFrame(sf).T
-    df.index.name = "TOD"
-    df = df.reset_index()
+    sf_mode_by_tp = pd.DataFrame(data=0.0, index=pd.Index(TIMEPERIODS, name='tp'), columns=MODES)
+    mode_by_dist = pd.DataFrame(data=0.0, index=pd.Index(distToTaz.keys(), name='District No'), columns=MODES)
+    mode_by_taz = pd.DataFrame(data=0.0, index=pd.Index(tazToDist.keys(), name='TAZ'), columns=MODES)
+    
+    for tp in TIMEPERIODS:
+        for mode in MODES:
+            tazmat = tazmats[tp][mode]
+            distmat = distmats[tp][mode]
+            
+            # for each of these, row sum + column sum - intersection.
+            
+            # sf modesum by tp
+            sf_mode_by_tp.loc[tp, mode] = (tazmat.loc[:MAX_SF_COUNTY_ZONE,:].sum().sum() +
+                                                 tazmat.loc[:,:MAX_SF_COUNTY_ZONE].sum().sum() -
+                                                 tazmat.loc[:MAX_SF_COUNTY_ZONE,:MAX_SF_COUNTY_ZONE].sum().sum()
+                                                )
+                                                
+            # taz daily modesum
+            mode_by_taz[mode] += tazmat.sum() + tazmat.sum(axis=1) - [tazmat.loc[i, i] for i in tazmat.index]
+            
+            # regional district daily modesum
+            for dist in distToTaz.keys():
+                mode_by_dist.loc[dist, mode] = ((distmat.loc[:dist,:].sum().sum() +
+                                                       distmat.loc[:,:dist].sum().sum() -
+                                                       distmat.loc[:dist,:dist].sum().sum()
+                                                      ))
+                
+    sf_mode_by_tp.loc['Daily'] = sf_mode_by_tp.sum()
+    sf_mode_by_tp = (sf_mode_by_tp.T.divide(sf_mode_by_tp.T.sum()).T * 100.0).round(1)
+    sf_mode_by_tp = sf_mode_by_tp.reset_index()
     df2html = DataFrameToCustomHTML([], [0])
-    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "Mode_tod.md"), True)
+    df2html.generate_html(sf_mode_by_tp, os.path.join(OUTPUT_FOLDER, "sf_mode_by_tp_src_trip_tables.md"), True)
+    sf_mode_by_tp.to_csv(os.path.join(OUTPUT_FOLDER, "sf_mode_by_tp_src_trip_tables.csv"), index=False)
 
-    df.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_tod.csv"), index=False)
-
-    # 3. Mode_daily.md, 4. Mode_daily.csv 5. district_mode_tod.csv
-
-    places = list(distnames.values())
-    types = [MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]
-
-    df = pd.DataFrame(data=res["Daily"], columns=types, index=places)
-    df.index.name = "District"
-    df = df.reset_index()
-    df_alt = df.loc[:, ["District", MS_AUTO, MS_TRANSIT, MS_PED, MS_BIKE, MS_TNC]]
-    df_alt.index.name = "District No"
-
-    df_alt = df_alt.reset_index()
-    df_alt["District No"] = df_alt["District No"] + 1
+    mode_by_dist = (mode_by_dist.T.divide(mode_by_dist.T.sum()).T * 100.0).round(1)
+    mode_by_dist.insert(0, 'District', mode_by_dist.index.map(lambda x: distnames[x]))
+    mode_by_dist = mode_by_dist.reset_index()
+    
     df2html = DataFrameToCustomHTML([], [0, 1])
-    df2html.generate_html(df_alt, os.path.join(OUTPUT_FOLDER, "Mode_daily.md"), True)
-    df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "Mode_daily.csv"), index=False)
-    df_alt = modifyDistrictNameForMap(df_alt, "District")
-    df_alt.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_tod.csv"), index=False)
+    df2html.generate_html(mode_by_dist, os.path.join(OUTPUT_FOLDER, "dist15_mode_src_trip_tables.md"), True)
+    mode_by_dist.to_csv(os.path.join(OUTPUT_FOLDER, "dist15_mode_src_trip_tables.csv"), index=False)
 
-    # 6. taz_mode.csv
-    comb_arr = []
-    for j in range(1, numdists + 1):
-        comb_arr.append([i - 1 for i in distToTaz[j]])
-    flatten_comb_arr = [item for sublist in comb_arr for item in sublist]
-    output = []
-    for t in [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10]:
-        res = []
-        for taz in flatten_comb_arr:
-            tmp = sumRowAndCol(t, taz, taz, True, False)
-            res.append(tmp)
-        output.append(res)
-
-    taz_df = pd.DataFrame(data=output, index=range(1, 11), columns=flatten_comb_arr)
-    taz_df = taz_df.T
-
-    T_taz_df = taz_df.reset_index(names="Taz")
-    mode_taz = pd.DataFrame()
-    mode_taz["Auto"] = T_taz_df.iloc[:, 1:4].sum(axis=1)
-    mode_taz["Transit"] = T_taz_df.iloc[:, 6:8].sum(axis=1)
-    mode_taz["Walk"] = T_taz_df.iloc[:, 4:5].sum(axis=1)
-    mode_taz["Bike"] = T_taz_df.iloc[:, 5:6].sum(axis=1)
-    mode_taz["TNC"] = T_taz_df.iloc[:, 9:11].sum(axis=1)
-
-    mode_taz = mode_taz.apply(lambda col: 100 * col / sum(col), axis=1)
-    mode_taz["Taz"] = T_taz_df["Taz"]
-
-    mode_taz.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode.csv"), index=False)
+    mode_by_taz = (mode_by_taz.T.divide(mode_by_taz.T.sum()).T * 100.0).round(1)
+    mode_by_taz.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode_src_trip_tables.csv"))
 
 
-    # Modesum from trip list
-    # filter dataframe for data processing
-
-    necessary_columns = [
-        "dpurp",
-        "tour_id",
-        "tseg",
-        "deptm",
-        "endacttm",
-        "otaz",
-        "mode",
-        "dtaz",
-        "trexpfac",
-    ]
+    # TRIP LIST SUMMARIES
+    necessary_columns = ["dpurp","tour_id","tseg","deptm","endacttm","otaz","mode","dtaz","trexpfac"]
     df = pd.read_csv(rp_trips, delimiter="\t", usecols=necessary_columns)
 
     df["original_index"] = df.index
@@ -465,7 +210,6 @@ if __name__=='__main__':
         left_on=["tour_id", "tseg", "deptm"],
         right_on=["tour_id", "tseg", "endacttm"],
         suffixes=("", "_next"),
-        indicator=True,
     )
     merged_df["deptm"] = merged_df["deptm_next"]
     merged_df["otaz"] = merged_df["otaz_next"]
@@ -485,19 +229,17 @@ if __name__=='__main__':
     final_df.loc[final_df['deptm'].between(540,930),'tp'] = 'MD'
     final_df.loc[final_df['deptm'].between(930,1110),'tp'] = 'PM'
 
-    distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
     final_df["odist"] = final_df["otaz"].map(lambda x: tazToDist[x][0])
     final_df["ddist"] = final_df["dtaz"].map(lambda x: tazToDist[x][0])
-    timePeriods = ["Daily", "AM", "MD", "PM", "EV", "EA"]
 
     # 7.dist15_mode_src_trip_list.md, 8.dist15_mode_src_trip_list.csv, 9. district_sf_mode_by_tp_src_trip_list_map.csv
-    df = mode_share_from_trip_list(final_df,'odist','ddist','District',scale=100.0)
-    df.index = df.index.map(lambda x: distnames[x])
+    df = mode_share_from_trip_list(final_df,'odist','ddist','District No',scale=100.0).round(1)
+    df.insert(0, 'District',df.index.map(lambda x: distnames[x]))
 
     df = df.reset_index()
     df2html = DataFrameToCustomHTML([], [0, 1])
-    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "district_mode_src_trip_list.md"), True)
-    df.to_csv(os.path.join(OUTPUT_FOLDER, "district_mode_src_trip_list.csv"), index=False)
+    df2html.generate_html(df, os.path.join(OUTPUT_FOLDER, "dist15_mode_src_trip_list.md"), True)
+    df.to_csv(os.path.join(OUTPUT_FOLDER, "dist15_mode_src_trip_list.csv"), index=False)
 
     # 10. sf_mode_by_tp_src_trip_list.md, 11.sf_mode_by_tp_src_trip_list.csv"
     sf = {}
@@ -506,9 +248,10 @@ if __name__=='__main__':
     df[3] = df[3] + df[4] + df[5] # collapse auto modes
     df[6] = df[6] + df[8] # collapse transit and school bus
     df = (df.drop(columns=[4, 5, 8])
-            .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'})[['Auto','Transit','Walk','Bike','TNC']])
+            .rename(columns={1: 'Walk', 2: 'Bike', 3: 'Auto', 6:'Transit', 9: 'TNC'}))
+    df = df.loc[['EA','AM','MD','PM','EV'],['Auto','Transit','Walk','Bike','TNC']]
     df.loc['Daily',:] = df.sum()
-    df = df.T.divide(df.T.sum()).T
+    df = (df.T.divide(df.T.sum()).T * 100.0).round(1)
     df = df.reset_index()
 
     df2html = DataFrameToCustomHTML([], [0])
@@ -516,8 +259,6 @@ if __name__=='__main__':
     df.to_csv(os.path.join(OUTPUT_FOLDER, "sf_mode_by_tp_src_trip_list.csv"), index=False)
 
     # 12. taz_mode_tab.csv
-    taz_mode = mode_share_from_trip_list(final_df,'otaz','dtaz','TAZ',scale=100.0)
+    taz_mode = mode_share_from_trip_list(final_df,'otaz','dtaz','TAZ',scale=100.0).round(1)
     taz_mode.to_csv(os.path.join(OUTPUT_FOLDER, "taz_mode_src_trip_list.csv"))
 
-    # delete the temp file
-    os.remove(os.path.join(WORKING_FOLDER, "summit_file.sum"))
