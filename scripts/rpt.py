@@ -388,10 +388,9 @@ rp = ResidentPurposes(dist_eqv)
 for tazSource in ["otaz", "dtaz", "hhtaz"]:
     for mapType in ["district", "taz"]:
         df = rp.getResidentPurposes(mapType, "Daily", tazSource)
-        df.reset_index(inplace=True, names="TAZs")
+        df.reset_index(inplace=True, names=mapType)
         if mapType == "district":
-            df["District"] = df["TAZs"].map(rp.distToName)
-            df = modifyDistrictNameForMap(df, "District")
+            df["district_name"] = df["district"].map(rp.distToName)
         df.fillna(0, inplace=True)
         output_file = f"{mapType}_rpurpose_{tazSource[0]}.csv"
         df.to_csv(os.path.join(OUTPUT_FOLDER, output_file), index=False)
