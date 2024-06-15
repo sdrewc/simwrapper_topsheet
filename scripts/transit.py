@@ -591,6 +591,7 @@ class SimwrapperMapConstructor:
         geo_df["AB"] = geo_df["A"].astype(str) + " " + geo_df["B"].astype(str)
         geo_df = geo_df.drop_duplicates(subset=["AB", "MODE"])
         geo_df.crs = "EPSG:2227"
+        geo_df = geo_df.to_crs('epsg:4326')
         desired_modes = [11, 12, 13]
         bus = geo_df[geo_df["MODE"].isin(desired_modes)]
         bus = bus[["AB", "geometry"]]
