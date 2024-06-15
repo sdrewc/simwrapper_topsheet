@@ -5,25 +5,21 @@ header:
 layout:
   Transit0:
     - type: text
-      title: 'Muni Boardings Table'
+      title: 'Muni Boardings'
       description: 'Table showing daily muni boardings in San Francisco'
-      file: 'data/Transit_muni_boardings_Daily.md'
-
+      file: 'topsheet/Transit_muni_boardings_Daily.md'
     - type: text
-      title: 'Rail Volumes Table'
-      description: 'Table showing daily inbound and outbound rail volumes'
-      file: 'data/Transit_rail_volumes_Daily.md'
-
-  Transit1:
-    - type: text
-      title: 'Rail Boardings Table'
+      title: 'Rail Boardings'
       description: 'Table showing daily rail boardings for Downtown, San Francisco and the Bay Area'
-      file: 'data/Transit_rail_boardings_Daily.md'
-
+      file: 'topsheet/Transit_rail_boardings_Daily.md'
     - type: text
-      title: 'Bus Volumes Table'
+      title: 'Rail Screenline Volumes'
+      description: 'Table showing daily inbound and outbound rail volumes'
+      file: 'topsheet/Transit_rail_volumes_Daily.md'
+    - type: text
+      title: 'Bus Screenline Volumes'
       description: 'Table showing daily inbound and outbound bus volumes'
-      file: 'data/Transit_bus_volumes_Daily.md'
+      file: 'topsheet/Transit_bus_volumes_Daily.md'
   
   Map Muni Bus:
     - type: map
@@ -34,10 +30,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/bus.shp
+      shapes: topsheet/bus.shp
       datasets:
           muniBus:
-              file: data/reg_am.csv
+              file: topsheet/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -67,10 +63,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/bus.shp
+      shapes: topsheet/bus.shp
       datasets:
           muniBus:
-              file: data/reg_pm.csv
+              file: topsheet/reg_pm.csv
               join: AB
       display:
           lineColor:
@@ -101,10 +97,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/rail.shp
+      shapes: topsheet/rail.shp
       datasets:
           muniBus:
-              file: data/reg_am.csv
+              file: topsheet/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -135,10 +131,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/rail.shp
+      shapes: topsheet/rail.shp
       datasets:
           muniBus:
-              file: data/reg_pm.csv
+              file: topsheet/reg_pm.csv
               join: AB
       display:
           lineColor:
@@ -170,10 +166,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/reg.shp
+      shapes: topsheet/reg.shp
       datasets:
           muniBus:
-              file: data/reg_am.csv
+              file: topsheet/reg_am.csv
               join: AB
       display:
           lineColor:
@@ -204,10 +200,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: data/reg.shp
+      shapes: topsheet/reg.shp
       datasets:
           muniBus:
-              file: data/reg_pm.csv
+              file: topsheet/reg_pm.csv
               join: AB
       display:
           lineColor:

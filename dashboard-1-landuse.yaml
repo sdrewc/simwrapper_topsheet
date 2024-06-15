@@ -5,75 +5,93 @@ header:
 
 
 layout:
-  table:
+  district:
     - type: text
-      width: 40
       title: 'Land Use Table'
-      description: >
+      description: 
         The table provides a snapshot of key demographic and economic indicators for the Bay Area, San Francisco, and 15 districts.  
         Density values are calculated by dividing the corresponding indicators by the square miles of each area.  
         HH is the abbreviation for Households; Pop is the abbreviation for Population; EmpRes is the abbreviation for Employed Residents.
-      file: data/landuse.md
-  bar chart:
-    - title: Land Use Plot
-      type: bar
-      description: 'The grouped bar chart displays four metrics - Households Density, Population Density, Employed Residents Density, and Employment Density - for 15 districts. Density values are calculated by dividing the corresponding indicators by the square miles of each area.'
-      dataset: 'data/landuse.csv'
-      x: 'DISTRICT_NAME'
-      columns: [	'HH DENSITY',	'POP DENSITY',	'EMP RES DENSITY',	'TOTAL EMP DENSITY']
-  Land Use Map - Taz:
+      file: topsheet/landuse.md  
+    - type: plotly
+      title: 'Land Use Density'
+      # description: 'Purpose and their trips in 2 locations'
+      datasets: 
+        data: 'topsheet/dist15_landuse.csv'
+      traces:
+        - type: bar
+          name: Household Density
+          y: $data.District
+          x: $data.Household Density
+          orientation: h
+        - type: bar
+          name: Population Density
+          y: $data.District
+          x: $data.Population Density
+          orientation: h
+        - type: bar
+          name: Employed Resident Density
+          y: $data.District
+          x: $data.Employed Resident Density
+          orientation: h
+        - type: bar
+          name: Employment Density
+          y: $data.District
+          x: $data.Employment Density
+          orientation: h
+      layout:
+        barmode: stack
+  maps:
     - type: map
-      title: Land Use Map - TAZ
+      title: Land Use by TAZ
       description: The map displays all land use metrics for each TAZ. To change display click on filter button and then choose alternate Fill Color.
       zoom: 11.6
       center:
           - -122.42
           - 37.77
-      height: 13
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/landuse_density.csv
+          file: topsheet/taz_landuse.csv
           join: TAZ:SFTAZ
       display:
           fill:
             dataset: taz
-            columnName: Households Density
+            columnName: Household Density
             colorRamp:
-              ramp: Plasma
+              ramp: Blues
               steps: 10
 
       tooltip:
-        - taz.DISTRICT_NAME
+        - taz.District
         - taz.SFTAZ
         - taz.Employment Density
         - taz.Population Density
         - taz.Employed Residents Density
         - taz.Households Density
-        - taz.Employment Value
-        - taz.Population Value
-        - taz.Employed Residents Value
-        - taz.Households Value
+        - taz.Employment
+        - taz.Population
+        - taz.Employed Residents
+        - taz.Households
 
-  Land Use map-districts:
     - type: map
-      title: Land Use Map - Districts
+      title: Land Use by District
       description: The map displays all land use metrics for each district. To change display click on filter button and then choose alternate Fill Color.
       zoom: 11.6
       center:
           - -122.42
           - 37.77
       height: 13
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       
       datasets:
         district: 
-          file: data/landuse_district.csv
-          join: Dist15_DIS:DISTRICT_NAME
+          file: topsheet/dist15_landuse.csv
+          join: DIST:District No
       display:
           fill:
               dataset: district
-              columnName: Households Density
+              columnName: Household Density
 
               colorRamp:
                   ramp: Blues
@@ -81,13 +99,14 @@ layout:
 
       tooltip:
         - district.Area
-        - district.DISTRICT
+        - district.District No
+        - district.District
         - district.Employment Density
         - district.Population Density
         - district.Employed Residents Density
         - district.Households Density
-        - district.Employment Value
-        - district.Population Value
-        - district.Employed Residents Value
-        - district.Households Value
+        - district.Employment
+        - district.Population
+        - district.Employed Residents
+        - district.Households
 

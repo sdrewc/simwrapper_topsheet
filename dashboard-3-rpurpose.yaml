@@ -5,97 +5,134 @@ header:
 
 
 layout:
-  row1:
+  time_of_day:
     - type: text
       title: 'San Francisco Resident Trips Purpose Table by Time of the Day' #to be changed to SF
       description: 'Table showing trips by primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'data/purpose_tod.md'
-
-  row2:
+      file: 'topsheet/purpose_tod.md'
     - type: "line"
       title: "Bay Area Trips by Primary Destination Purpose and Time Of Day"
       description: 'Graph showing trips by primary destination purpose statistics for 5 different times of the day'
-      width: 2
       props:
-        dataset: "data/purpose_tod.csv"
+        dataset: "topsheet/purpose_tod.csv"
         x: "TOD"
         columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
         xAxisName: 'Time of the Day'
         yAxisName: 'Count of trips'
-
-  row3:
+  district:
     - type: text
       title: 'Bay Area Daily Trips Purpose Table by Primary Destination'
       description: 'Table showing statistics for 15 districts trips by primary destination purpose statistics'
-      file: 'data/purpose_dist_daily.md'
-
-  row4:
-    - type: 'bar'
+      file: 'topsheet/purpose_dist_daily.md'
+    - type: plotly
       title: 'SF Daily Trip Purpose Plot'
       description: 'Graph showing statistics for 12 districts trips by primary destination purpose statistics'
-      height: 4
-      width: 1
-      dataset: 'data/purpose_all.csv'
-      stacked: true
-      x: 'Districts'
-      columns: [ 'Work', 'School','Escort','Personal Business & Medical','Shopping','Meals','Social & Recreational','Change Mode','Return Home']
-      xAxisName: 'Districts'
-      yAxisName: 'District Counts'
+      datasets: 
+        data: 'topsheet/purpose_all.csv'
+      traces:
+        - type: bar
+          name: Work
+          y: $data.Districts
+          x: $data.Work
+          orientation: h
+        - type: bar
+          name: School
+          y: $data.Districts
+          x: $data.School
+          orientation: h
+        - type: bar
+          name: Escort
+          y: $data.Districts
+          x: $data.Escort
+          orientation: h
+        - type: bar
+          name: 'Personal Business & Medical'
+          y: $data.Districts
+          x: $data.Personal Business & Medical
+          orientation: h
+        - type: bar
+          name: Shopping
+          y: $data.Districts
+          x: $data.Shopping
+          orientation: h
+        - type: bar
+          name: Meals
+          y: $data.Districts
+          x: $data.Meals
+          orientation: h
+        - type: bar
+          name: 'Social & Recreational'
+          y: $data.Districts
+          x: $data.Social & Recreational
+          orientation: h
+        - type: bar
+          name: 'Change Mode'
+          y: $data.Districts
+          x: $data.Change Mode
+          orientation: h
+        - type: bar
+          name: 'Return Home'
+          y: $data.Districts
+          x: $data.Return Home
+          orientation: h
+            
+      layout:
+        barmode: stack
 
-  taz_map:
+  taz_maps:
     - type: map
-      title: Daily Resident Travel Purpose for All TAZs
+      title: Daily Resident Trips by Purpose by Home TAZ
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_rpurpose_h.csv
-          join: TAZ:TAZs
+          file: topsheet/taz_rpurpose_h.csv
+          join: TAZ:taz
       display:
           fill:
             dataset: taz
             columnName: Work
+            normalize: TAZ2454_clean.shp:SQ_MILE
             colorRamp:
               ramp: Plasma
               steps: 10
 
       tooltip:
         - taz.District
-        - taz.TAZs
+        - taz.taz
         - taz.Work
         - taz.Grade School
         - taz.High School
         - taz.College
         - taz.Workbased
-
-  taz_origin_destination_map:
     - type: map
-      title: Daily Travel Purpose Map by Origin for ALL TAZs
+      title: by Origin TAZ
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_rpurpose_o.csv
-          join: TAZ:TAZs
+          file: topsheet/taz_rpurpose_o.csv
+          join: TAZ:taz
       display:
           fill:
             dataset: taz
             columnName: Work
+            normalize: TAZ2454_clean.shp:SQ_MILE
             colorRamp:
               ramp: Plasma
               steps: 10
 
       tooltip:
         - taz.District
-        - taz.TAZs
+        - taz.taz
         - taz.Work
         - taz.Grade School
         - taz.High School
@@ -103,91 +140,92 @@ layout:
         - taz.Workbased
 
     - type: map
-      title: Daily Travel Purpose Map by Destination for ALL TAZs
+      title: by Destination TAZ
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_rpurpose_d.csv
-          join: TAZ:TAZs
+          file: topsheet/taz_rpurpose_d.csv
+          join: TAZ:taz
       display:
           fill:
             dataset: taz
             columnName: Work
+            normalize: TAZ2454_clean.shp:SQ_MILE
             colorRamp:
               ramp: Plasma
               steps: 10
 
       tooltip:
         - taz.District
-        - taz.TAZs
+        - taz.taz
         - taz.Work
         - taz.Grade School
         - taz.High School
         - taz.College
         - taz.Workbased
 
-  district_map:
+  district_maps:
     - type: map
-      title: Daily Resident Travel Purpose Map for 15 Districts
+      title: Daily Resident Trips by Purpose Map by Home District
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: data/district_rpurpose_h.csv
-          join: Dist15_DIS:District
+          file: topsheet/district_rpurpose_h.csv
+          join: DIST:district
       display:
           fill:
               dataset: district
               columnName: Work
+              normalize: Dist_15_Dissolve.shp:Shape_Area
               colorRamp:
                   ramp: Plasma
                   steps: 15
 
       tooltip:
         # - district.District No
-        - district.District
-        - district.District Names
+        - district.district
+        - district.district_name
         - district.Work
         - district.Grade School
         - district.High School
         - district.College
         - district.Workbased
-# ['Work','Grade School','High School','College','Workbased','Escort','Personal Business','Social & Recreational','Shopping','Meals']
 
-  taz_origin_destion_map:
     - type: map
-      title: Daily Travel Purpose Map by Origin for 15 Districts
+      title: by Origin district
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: data/district_rpurpose_o.csv
-          join: Dist15_DIS:District
+          file: topsheet/district_rpurpose_o.csv
+          join: DIST:district
       display:
           fill:
               dataset: district
               columnName: Work
+              normalize: Dist_15_Dissolve.shp:Shape_Area
               colorRamp:
                   ramp: Plasma
                   steps: 15
 
       tooltip:
         # - district.District No
-        - district.District
-        - district.District Names
+        - district.district
+        - district.district_name
         - district.Work
         - district.Grade School
         - district.High School
@@ -195,64 +233,104 @@ layout:
         - district.Workbased
         
     - type: map
-      title: Daily Travel Purpose Map by Destination for 15 Districts
+      title: by Destination district
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       datasets:
         district: 
-          file: data/district_rpurpose_d.csv
-          join: Dist15_DIS:District
+          file: topsheet/district_rpurpose_d.csv
+          join: DIST:district
       display:
           fill:
               dataset: district
               columnName: Work
+              normalize: Dist_15_Dissolve.shp:Shape_Area
               colorRamp:
                   ramp: Plasma
                   steps: 15
 
       tooltip:
         # - district.District No
-        - district.District
-        - district.District Names
+        - district.district
+        - district.district_name
         - district.Work
         - district.Grade School
         - district.High School
         - district.College
         - district.Workbased
-  row5:
+  tour_time_of_day:
     - type: text
       title: 'SF Resident Tour Purpose Table by Time of the Day'
       description: 'Table showing tours by tour primary destination purpose statistics for 5 different times of the day including Daily aggeragate'
-      file: 'data/purpose_tod_tour.md'
-  row6:
+      file: 'topsheet/purpose_tod_tour.md'
     - type: "line"
       title: "Tours by primary destination purpose and Time Of Day"
-      width: 2
       props:
-        dataset: "data/purpose_tod_tour.csv"
+        dataset: "topsheet/purpose_tod_tour.csv"
         x: "TOD"
         columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
         xAxisName: 'Time of the Day'
         yAxisName: 'Count of tours'
 
-  row7:
+  tour_district:
     - type: text
       title: 'SF Daily Tours Purpose Table by Primary Destination'
       description: 'Table showing statistics for 15 districts'
-      file: 'data/purpose_all_tour.md'
-
-  row8:
-    - type: 'bar'
+      file: 'topsheet/purpose_all_tour.md'
+    - type: plotly
       title: 'Daily Tour Purpose plot'
       # description: 'Purpose and their trips in 2 locations'
-      height: 4
-      width: 1
-      dataset: 'data/purpose_all_tour.csv'
-      stacked: true
-      x: 'district'
-      columns: ['Work','Grade School','High School','College','Escort','Personal Business(including medical)','Social & Recreational','Shopping','Meals']
-      yAxisName: 'District Counts'
+      datasets: 
+        data: 'topsheet/purpose_all_tour.csv'
+      traces:
+        - type: bar
+          name: Work
+          y: $data.district
+          x: $data.Work
+          orientation: h
+        - type: bar
+          name: Grade School
+          y: $data.district
+          x: $data.Grade School
+          orientation: h
+        - type: bar
+          name: High School
+          y: $data.district
+          x: $data.High School
+          orientation: h
+        - type: bar
+          name: College
+          y: $data.district
+          x: $data.College
+          orientation: h
+        - type: bar
+          name: Escort
+          y: $data.district
+          x: $data.Escort
+          orientation: h
+        - type: bar
+          name: 'Personal Business(including medical)'
+          y: $data.district
+          x: $data.Personal Business(including medical)
+          orientation: h
+        - type: bar
+          name: Shopping
+          y: $data.district
+          x: $data.Shopping
+          orientation: h
+        - type: bar
+          name: Meals
+          y: $data.district
+          x: $data.Meals
+          orientation: h
+        - type: bar
+          name: 'Social & Recreational'
+          y: $data.district
+          x: $data.Social & Recreational
+          orientation: h
+      layout:
+        barmode: stack

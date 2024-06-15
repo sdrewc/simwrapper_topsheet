@@ -5,151 +5,146 @@ header:
 
 
 layout:
-  row1:
+  sf_mode_src_trip_table:
     - type: text
-      title: 'SF Mode Share Table by Time of the Day (Data Source: Person Trips)'
+      title: 'San Francisco Mode Share by Time of Day (source: trip tables)'
       description: 'Table showing modeshare statistics for 5 different times of the day including Daily aggeragate. We consider origin or destination as SF'
-      file: 'data/Mode_tod.md'
+      file: 'topsheet/sf_mode_by_tp_src_trip_tables.md'
 
     - type: "bar"
-      title: "Mode Share by TOD"
-      width: 2
+      title: "Mode Share by Time of Day"
       props:
-        dataset: "data/Mode_tod.csv"
-        x: "TOD"
+        dataset: "topsheet/sf_mode_by_tp_src_trip_tables.csv"
+        x: "tp"
         stacked: true
-        columns: ['Auto','Transit','Pedestrian','Bike','TNC']
+        columns: ['Auto','Transit','Walk','Bike','TNC']
         xAxisName: 'Time of the Day'
-        yAxisName: 'Percentage(%)'
-  row1-tripList:
+        yAxisName: 'Mode Share(%)'
+  sf_mode_src_trip_list:
     - type: text
-      title: 'SF Mode Share Table by Time of the Day (Data Source: Trip List)'
+      title: 'San Francisco Mode Share by Time of Day (source: trip list)'
       description: 'Table showing modeshare statistics for 5 different times of the day including Daily aggeragate. We consider origin or destination as SF'
-      file: 'data/Mode_tod_tab.md'
+      file: 'topsheet/sf_mode_by_tp_src_trip_list.md'
 
     - type: "bar"
-      title: "Mode Share by TOD"
-      width: 2
+      title: "Mode Share by Time of Day"
       props:
-        dataset: "data/Mode_tod_tab.csv"
-        x: "TOD"
+        dataset: "topsheet/sf_mode_by_tp_src_trip_list.csv"
+        x: "tp"
         stacked: true
-        columns: ['Auto','Transit','Pedestrian','Bike','TNC']
+        columns: ['Auto','Transit','Walk','Bike','TNC']
         xAxisName: 'Time of the Day'
-        yAxisName: 'Percentage(%)'
-  row2:
+        yAxisName: 'Mode Share(%)'
+  bay_mode_src_trip_table:
     - type: text
-      title: 'Bay Area Daily Mode Share Table by Area (Data Source: Person Trips)'
+      title: 'Bay Area Daily Mode Share by District (source: trip tables)'
       description: 'Table showing modeshare statistics for 15 districts'
-      file: 'data/Mode_daily.md'
+      file: 'topsheet/dist15_mode_src_trip_tables.md'
 
     - type: 'bar'
       title: 'Daily Mode Share plot'
       # description: 'Purpose and their trips in 2 locations'
-      height: 4
       width: 1
-      dataset: 'data/Mode_daily.csv'
+      dataset: 'topsheet/dist15_mode_src_trip_tables.csv'
       stacked: true
       x: 'District'
-      columns: ['Auto','Transit','Pedestrian','Bike','TNC']
+      columns: ['Auto','Transit','Walk','Bike','TNC']
       xAxisName: 'Districts'
       yAxisName: 'Modes Share (%)'
-  row2-tab:
+  bay_mode_src_trip_list:
     - type: text
-      title: 'Bay Area Daily Mode Share Table by Area (Data Source: Trip List)'
+      title: 'Bay Area Daily Mode Shareby District (source: trip list)'
       description: 'Table showing modeshare statistics for 15 districts'
-      file: 'data/Mode_tod_tab_district.md'
+      file: 'topsheet/dist15_mode_src_trip_list.md'
 
     - type: 'bar'
       title: 'Daily Mode Share plot'
       # description: 'Purpose and their trips in 2 locations'
-      height: 4
       width: 1
-      dataset: 'data/Mode_tod_tab_district.csv'
+      dataset: 'topsheet/dist15_mode_src_trip_list.csv'
       stacked: true
       x: 'District'
-      columns: ['Auto','Transit','Pedestrian','Bike','TNC']
+      columns: ['Auto','Transit','Walk','Bike','TNC']
       xAxisName: 'Districts'
       yAxisName: 'Modes Share (%)'
 
   taz_map:
     - type: map
-      title: 'Daily Mode Share Map for all TAZs -  (Data Source: Person Trips)'
+      title: 'Daily Mode Share by TAZ (source: trip tables)'
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_mode.csv
-          join: TAZ:Taz
+          file: topsheet/taz_mode_src_trip_tables.csv
+          join: TAZ:TAZ
       display:
           fill:
             dataset: taz
             columnName: Auto
             colorRamp:
-              ramp: Plasma
+              ramp: Greens
               steps: 10
 
       tooltip:
         - taz.District
-        - taz.Taz
+        - taz.TAZ
         - taz.Auto
         - taz.Transit
         - taz.TNC
         - taz.Bike
-        - taz.Pedestrian
-  taz_map_trip_list:
+        - taz.Walk
     - type: map
-      title: 'Daily Mode Share Map for all TAZs -  (Data Source: Trip List)'
+      title: 'Daily Mode Share by TAZ (source: trip list)'
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/TAZ2454_clean.shp
+      shapes: ../../shapefiles/Topsheet/TAZ2454_clean.shp
       datasets:
         taz: 
-          file: data/taz_mode_tab.csv
-          join: TAZ:Taz
+          file: topsheet/taz_mode_src_trip_list.csv
+          join: TAZ:TAZ
       display:
           fill:
             dataset: taz
             columnName: Auto
             colorRamp:
-              ramp: Plasma
+              ramp: Greens
               steps: 10
 
       tooltip:
         - taz.District
-        - taz.Taz
+        - taz.TAZ
         - taz.Auto
         - taz.Transit
         - taz.TNC
         - taz.Bike
-        - taz.Pedestrian
+        - taz.Walk
   district_map:
     - type: map
-      title: 'Daily Mode Share Map for 15 Districts -  (Data Source: Person Trips) '
+      title: 'Daily Mode Share by District (source: trip tables) '
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 
-          file: data/district_mode_tod.csv
-          join: Dist15_DIS:District
+          file: topsheet/district_mode_tod.csv
+          join: DIST:District No
       display:
           fill:
               dataset: district
               columnName: Auto
               colorRamp:
-                  ramp: Plasma
+                  ramp: Greens
                   steps: 15
 
       tooltip:
@@ -159,27 +154,26 @@ layout:
         - district.Transit
         - district.TNC
         - district.Bike
-        - district.Pedestrian
-  district_map_tab:
+        - district.Walk
     - type: map
-      title: 'Daily Mode Share Map for 15 Districts -  (Data Source:  Trip List) '
+      title: 'Daily Mode Share by District source: trip list)'
       zoom: 11
       center:
           - -122.42
           - 37.77
       height: 12
-      shapes: ../../../../shapefiles/Topsheet/Dist_15_Dissolve.shp
+      shapes: ../../shapefiles/Topsheet/Dist_15_Dissolve.shp
       # legend: true
       datasets:
         district: 
-          file: data/district_mode_tod_tab_map.csv
-          join: Dist15_DIS:District
+          file: topsheet/dist15_mode_src_trip_list.csv
+          join: DIST:District No
       display:
           fill:
               dataset: district
               columnName: Auto
               colorRamp:
-                  ramp: Plasma
+                  ramp: Greens
                   steps: 15
 
       tooltip:
@@ -189,4 +183,4 @@ layout:
         - district.Transit
         - district.TNC
         - district.Bike
-        - district.Pedestrian
+        - district.Walk

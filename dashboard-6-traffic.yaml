@@ -7,29 +7,26 @@ layout:
     - type: text
       title: 'Total Traffic Volume'
       description: 'Tabular view of Time of the day Traffic Volume ||  I = Inbound & O = Outbound'
-      file: 'data/traffic_dow.md'
+      file: 'topsheet/traffic_dow.md'
   
   Traffic2:
     - type: text
       title: 'Vehicle Classes for All SF County Lines'
       description: 'Daily Traffic vs Vehicle Classes'
-      file: 'data/traffic_All SF County Lines.md'
-
+      file: 'topsheet/traffic_All SF County Lines.md'
     - type: text
       title: 'Vehicle Classes for SM County Line'
       description: 'Daily Traffic vs Vehicle Classes'
-      file: 'data/traffic_SM County Line.md'
-
-  Traffic3:
+      file: 'topsheet/traffic_SM County Line.md'
     - type: text
       title: 'Vehicle Classes for Bay Bridge'
       description: 'Daily Traffic vs Vehicle Classes'
-      file: 'data/traffic_Bay Bridge.md'
+      file: 'topsheet/traffic_Bay Bridge.md'
 
     - type: text
       title: 'Vehicle Classes for Golden Gate Bridge'
       description: 'Daily Traffic vs Vehicle Classes'
-      file: 'data/traffic_GG Bridge.md'
+      file: 'topsheet/traffic_GG Bridge.md'
   
   Map Muni Bus:
     - type: map
@@ -39,10 +36,10 @@ layout:
       center:
           - -122.42
           - 37.77
-      shapes: ../../../../shapefiles/Topsheet/freeflow.shp
+      shapes: ../../shapefiles/Topsheet/freeflow.shp
       datasets:
           traffic:
-              file: data/traffic_map_Daily.csv
+              file: topsheet/traffic_map_Daily.csv
               join: AB
       display:
           # lineColor:
