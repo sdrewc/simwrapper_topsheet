@@ -241,45 +241,33 @@ md_path = os.path.join(OUTPUT_FOLDER, "landuse.md")
 
 df2html.generate_html(combined_df, md_path)
 
-# 2. Generate landuse.csv
-csv_df = district_density_df[
-    [
-        "DISTRICT_NAME",
-        "HH DENSITY",
-        "POP DENSITY",
-        "EMP RES DENSITY",
-        "TOTAL EMP DENSITY",
-    ]
-]
-
-csv_path = os.path.join(OUTPUT_FOLDER, "landuse.csv")
-csv_df.to_csv(csv_path, index=False)
-
-
-# 3. Generate landuse_density.csv
+# 3. Generate taz_landuse.csv
 distnames, distToTaz, tazToDist, numdists = readEqvFile(DIST_EQV)
 merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE)
 renaming_dict = {
-    "HH DENSITY": "Households Density",
+    "DISTRICT": 'District No',
+    "DISTRICT_NAME": 'District',
+    "HH DENSITY": "Household Density",
     "POP DENSITY": "Population Density",
-    "EMP RES DENSITY": "Employed Residents Density",
-    "EMPRES": "Employed Residents Value",
-    "TOTALEMP": "Employment Value",
+    "EMP RES DENSITY": "Employed Resident Density",
+    "EMPRES": "Employed Residents",
+    "TOTALEMP": "Employment",
     "TOTAL EMP DENSITY": "Employment Density",
-    "HHLDS": "Households Value",
-    "POP": "Population Value",
+    "HHLDS": "Households",
+    "POP": "Population",
 }
 merged_df.rename(
     columns=renaming_dict,
     inplace=True,
 )
-taz_map_csv = os.path.join(OUTPUT_FOLDER, "landuse_density.csv")
+taz_map_csv = os.path.join(OUTPUT_FOLDER, "taz_landuse.csv")
 merged_df.to_csv(taz_map_csv, index=False)
 
 # 4. Generate landuse_district.csv
-merged_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE, False)
+dist_df = merge_luFiles(LU_FILE, LU_CLEAN_FILE, False)
 
 columns = [
+    "DISTRICT_NAME",
     "HHLDS",
     "POP",
     "EMPRES",
@@ -288,16 +276,12 @@ columns = [
     "POP DENSITY",
     "EMP RES DENSITY",
     "TOTAL EMP DENSITY",
-    "DISTRICT_NAME",
 ]
-final_df = merged_df[columns].copy()
-final_df.rename(
+dist_df = dist_df[columns]
+dist_df.rename(
     columns=renaming_dict,
     inplace=True,
 )
-final_df.index.name = "Area"
-final_df = final_df.reset_index()
-final_df = modifyDistrictNameForMap(final_df, "DISTRICT_NAME")
-
-csv_path = os.path.join(OUTPUT_FOLDER, "landuse_district.csv")
-final_df.to_csv(csv_path, index=False)
+dist_df.index.name = "District No"
+csv_path = os.path.join(OUTPUT_FOLDER, "dist15_landuse.csv")
+dist_df.to_csv(csv_path)
