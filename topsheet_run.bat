@@ -31,8 +31,8 @@ echo Running landuse
 CALL python %SCRIPTS_FOLDER%\landuse.py
 echo Running mode
 CALL python %SCRIPTS_FOLDER%\mode.py
-echo Running rpt, it will take about 30 minutes
-CALL python %SCRIPTS_FOLDER%\rpt.py
+echo Running purpose, it will take about 30 minutes
+CALL python %SCRIPTS_FOLDER%\purpose.py
 echo Running vmt_vht
 CALL python %SCRIPTS_FOLDER%\vmt_vht.py
 echo Running transit
